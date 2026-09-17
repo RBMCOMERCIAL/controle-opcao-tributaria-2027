@@ -1,0 +1,5512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Opção Tributária – 2027 | RBM Contábil</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS para Excel import/export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase Cloud Sync SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --primary-dark: #0f172a;
+            --secondary: #0f766e;
+            --accent: #d97706;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --blue-badge: #0284c7;
+            --radius: 12px;
+            --transition: all 0.25s ease-in-out;
+        }
+
+        .light-mode {
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary-dark: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+            transition: var(--transition);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title .icon-box {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #2563eb, #0d9488);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #60a5fa, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .light-mode .header-title h1 {
+            background: linear-gradient(135deg, #1e40af, #0f766e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857, #065f46);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary-light);
+        }
+
+        .auto-save-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+            background: var(--success-bg);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 600;
+        }
+
+        /* Dashboard KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: var(--transition);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(96, 165, 250, 0.4);
+        }
+
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .kpi-info h3 {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .kpi-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Filter Controls Bar */
+        .filter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 1200px) {
+            .filter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-item label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            background: var(--bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Data Table Section */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .table-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header-bar h2 {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 65vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            padding: 14px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--card-border);
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--card-border);
+            transition: var(--transition);
+        }
+
+        tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        td {
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        /* Status & Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-sn { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-lp { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-lr { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+        .check-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .check-status.done {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            font-size: 16px;
+        }
+
+        .check-status.pending {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px dashed var(--card-border);
+            color: transparent;
+        }
+
+        .check-status.pending:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-light);
+        }
+
+        /* Option Select Dropdown 2027 */
+        .select-opcao {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid var(--card-border);
+            background: var(--bg);
+            color: var(--text-main);
+            cursor: pointer;
+            width: 100%;
+            min-width: 160px;
+            transition: var(--transition);
+        }
+
+        .select-opcao.hibrida { border-color: #8b5cf6; color: #a78bfa; background: rgba(139, 92, 246, 0.1); }
+        .select-opcao.tradicional { border-color: #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
+        .select-opcao.presumido { border-color: #f59e0b; color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
+        .select-opcao.real { border-color: #ec4899; color: #f472b6; background: rgba(236, 72, 153, 0.1); }
+        .select-opcao.b2b { border-color: #0284c7; color: #38bdf8; background: rgba(2, 132, 199, 0.12); }
+        .select-opcao.b2c { border-color: #10b981; color: #34d399; background: rgba(16, 185, 129, 0.12); }
+
+
+        /* Observation & Collaborator Input */
+        .obs-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: var(--transition);
+        }
+
+        .obs-input:hover, .obs-input:focus {
+            background: var(--bg);
+            border-color: var(--card-border);
+        }
+
+        /* Action Buttons in Table */
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-icon:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Modal styling */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 550px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Print styles */
+        @media print {
+            body { padding: 0; background: white; color: black; }
+            header, .filter-card, .kpi-grid, .btn, .btn-icon, th:last-child, td:last-child { display: none !important; }
+            .table-container { border: none; box-shadow: none; }
+            table { width: 100%; border: 1px solid #ccc; }
+            th, td { border: 1px solid #ccc; color: black !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="header-title">
+            <div class="icon-box">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+                <h1>Controle de Opção Tributária – 2027</h1>
+                <p>Gestão e Levantamento Tributário (IBS/CBS - Transição Reforma Tributária)</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="auto-save-badge" id="cloudStatusBadge" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+                <i class="fa-solid fa-cloud"></i> <span id="cloudStatusText">Sincronizando Nuvem...</span>
+            </div>
+            <button class="btn btn-outline" onclick="abrirModalHistorico()" title="Ver Histórico de Alterações da Equipe">
+                <i class="fa-solid fa-clock-rotate-left"></i> Histórico
+            </button>
+
+            <button class="btn btn-outline" id="btnLock" onclick="toggleLockEdicao()" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                <i class="fa-solid fa-lock" id="lockIcon"></i> <span id="lockText">Edição Bloqueada</span>
+            </button>
+            <button class="btn btn-primary" onclick="abrirModalNovaEmpresa()">
+                <i class="fa-solid fa-plus"></i> Nova Empresa
+            </button>
+            <button class="btn btn-success" onclick="exportarExcel()">
+                <i class="fa-solid fa-file-excel"></i> Exportar Excel
+            </button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
+                <i class="fa-solid fa-file-import"></i> Importar
+            </button>
+            <input type="file" id="importFile" accept=".xlsx, .csv, .json" style="display: none;" onchange="importarDados(event)">
+            <button class="btn btn-outline" onclick="toggleTheme()" title="Alternar Tema">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+                <i class="fa-solid fa-building"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiTotal">0</h3>
+                <p>Total de Empresas</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiLevantados">0</h3>
+                <p>Levantamentos Feitos (✔️)</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">
+                <i class="fa-solid fa-code-fork"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiHibrida">0</h3>
+                <p>Opção Híbrida 2027</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiPresumidoReal">0</h3>
+                <p>Lucro Presumido / Real</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+        <div class="filter-grid" style="grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;">
+            <div class="filter-item">
+                <label><i class="fa-solid fa-magnifying-glass"></i> Buscar Empresa / Código</label>
+                <input type="text" id="searchFilter" class="form-control" placeholder="Digite o nome ou código..." oninput="filtrarTabela()">
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-briefcase"></i> Modelo (B2B / B2C)</label>
+                <select id="modeloFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos os Modelos</option>
+                    <option value="B2B">B2B (Empresas)</option>
+                    <option value="B2C">B2C (Consumidor Final)</option>
+                    <option value="Pendente">Não Definido</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-user"></i> Colaborador</label>
+                <select id="colaboradorFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos os Colaboradores</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-layer-group"></i> Enquadramento 2026</label>
+                <select id="enquadramentoFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos</option>
+                    <option value="SN">Simples Nacional (SN)</option>
+                    <option value="LP">Lucro Presumido (LP)</option>
+                    <option value="LR">Lucro Real (LR)</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-list-check"></i> Status Levantamento</label>
+                <select id="statusFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos</option>
+                    <option value="concluido">✔️ Concluído</option>
+                    <option value="pendente">⏳ Pendente</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-sliders"></i> Opção 2027</label>
+                <select id="opcao2027Filter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todas as Opções</option>
+                    <option value="Híbrida">Híbrida</option>
+                    <option value="Tradicional">Tradicional</option>
+                    <option value="Lucro Presumido">Lucro Presumido</option>
+                    <option value="Lucro Real">Lucro Real</option>
+                    <option value="Pendente">Não Definida</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <div class="table-header-bar">
+            <h2><i class="fa-solid fa-table-list"></i> Listagem de Empresas e Opções Tributárias</h2>
+            <div style="font-size: 12px; color: var(--text-muted);" id="registrosCount">
+                Mostrando 0 empresas
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">CÓD</th>
+                        <th>NOME DA EMPRESA</th>
+                        <th style="width: 140px;">MODELO (B2B/B2C)</th>
+                        <th style="width: 160px;">ENQUADRAMENTO 2026</th>
+                        <th style="width: 140px; text-align: center;">LEVANTAMENTO</th>
+                        <th style="width: 220px;">OPÇÃO 2027</th>
+                        <th style="width: 160px;">COLABORADOR</th>
+                        <th>OBSERVAÇÃO</th>
+                        <th style="width: 60px; text-align: center;">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo">
+                    <!-- Gerado via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Empresa -->
+<div class="modal-backdrop" id="modalEmpresa">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Cadastrar Nova Empresa</h3>
+            <button class="btn-icon" onclick="fecharModalEmpresa()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Código da Empresa</label>
+            <input type="number" id="modalCod" class="form-control" placeholder="Ex: 105">
+        </div>
+        <div class="form-group">
+            <label>Nome / Razão Social</label>
+            <input type="text" id="modalNome" class="form-control" placeholder="Razão social da empresa">
+        </div>
+        <div class="form-group">
+            <label>Enquadramento 2026</label>
+            <select id="modalEnquadramento" class="form-control">
+                <option value="SN">Simples Nacional (SN)</option>
+                <option value="LP">Lucro Presumido (LP)</option>
+                <option value="LR">Lucro Real (LR)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Colaborador Responsável</label>
+            <select id="modalColaborador" class="form-control">
+                <option value="Patrícia">Patrícia</option>
+                <option value="Simone">Simone</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="fecharModalEmpresa()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarNovaEmpresa()">Salvar Empresa</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Base Inicial extraída diretamente do relatório fiscal fornecido
+    const dadosIniciais = [
+        {
+                "cod": 1,
+                "empresa": "RBM Contabil",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 10,
+                "empresa": "Bar Pioneira",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11,
+                "empresa": "Academia Estilo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 30,
+                "empresa": "Geci Alves",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 44,
+                "empresa": "Trans Planalto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 134,
+                "empresa": "Auto Mec Giba",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 272,
+                "empresa": "HGA Corretora",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 286,
+                "empresa": "Cemed",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 303,
+                "empresa": "Dover's",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 319,
+                "empresa": "J.M.M. Prod Limpeza",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 364,
+                "empresa": "Isabel Cristina Naddeo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 395,
+                "empresa": "Comercial Mac Jordan",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 416,
+                "empresa": "Lanchonete do Fincos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 438,
+                "empresa": "Zelar",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 496,
+                "empresa": "AS Rocha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 532,
+                "empresa": "Vieira e Soares",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 553,
+                "empresa": "AT Shimamoto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 573,
+                "empresa": "Silpe",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 586,
+                "empresa": "SRM Empório",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 621,
+                "empresa": "Biondo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 629,
+                "empresa": "HMJ",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 638,
+                "empresa": "Garba",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 659,
+                "empresa": "Natureza Animal",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 665,
+                "empresa": "Danielle Ribeiro",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 670,
+                "empresa": "Adami Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 683,
+                "empresa": "Braggio e Molina",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 684,
+                "empresa": "Maf",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 707,
+                "empresa": "Dipapel",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 751,
+                "empresa": "JBJ Bomboniere",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 756,
+                "empresa": "Dyan",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 769,
+                "empresa": "TAM",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 799,
+                "empresa": "Centra Sport Bar",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 831,
+                "empresa": "Eder",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 836,
+                "empresa": "Hiper Boi Empório",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 843,
+                "empresa": "Cesonia",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 854,
+                "empresa": "SKM",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 865,
+                "empresa": "Auto S Nova Paulinho",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 889,
+                "empresa": "Vargas Clin Med",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 916,
+                "empresa": "Seta Telecom",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 940,
+                "empresa": "Carlimp",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 958,
+                "empresa": "Auto S Trans Paulinho",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 968,
+                "empresa": "Antolima",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 977,
+                "empresa": "4Kids",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1003,
+                "empresa": "Terada e Terada",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1017,
+                "empresa": "Betaz",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1020,
+                "empresa": "Alvtec",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1021,
+                "empresa": "Alvtec Filial",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1039,
+                "empresa": "Sob Port",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1045,
+                "empresa": "Droide",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1050,
+                "empresa": "Avic Rec Passaros",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1054,
+                "empresa": "Sincronismo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1055,
+                "empresa": "Eden",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1059,
+                "empresa": "Riwapac",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1064,
+                "empresa": "Bomfa",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1068,
+                "empresa": "Dry Master",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1082,
+                "empresa": "Profusão",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1113,
+                "empresa": "Vera Lucia Calcados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1122,
+                "empresa": "Tudo Prata",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1135,
+                "empresa": "SWR Manutenção",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1136,
+                "empresa": "Cromação",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1138,
+                "empresa": "JJE Pescados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1144,
+                "empresa": "Superm Horti Pinheirao",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1158,
+                "empresa": "Bazar Vila Euclides",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1159,
+                "empresa": "J.Valfredo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1165,
+                "empresa": "Comercio Roupas Planalto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1171,
+                "empresa": "WB Som",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1186,
+                "empresa": "Omegatron",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1195,
+                "empresa": "Barbosa e Oliveira",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1211,
+                "empresa": "Serelepe Didaticos",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1217,
+                "empresa": "CEOR Administração",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1219,
+                "empresa": "HMS",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1226,
+                "empresa": "Calceaki",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1228,
+                "empresa": "Solução Molas",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1241,
+                "empresa": "Bracar",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1246,
+                "empresa": "109 Centro Treinamento",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1253,
+                "empresa": "M&S Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1261,
+                "empresa": "Biagioni Bertanha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1263,
+                "empresa": "Edi Labs",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1274,
+                "empresa": "J & L",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1277,
+                "empresa": "Rio Tera",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1278,
+                "empresa": "Santa Rita Assessoria",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1292,
+                "empresa": "JKE Pescados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1301,
+                "empresa": "P. U. Latino América",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1303,
+                "empresa": "Herman Wendich",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1307,
+                "empresa": "Henrique Caravanti",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1309,
+                "empresa": "Eletronica Tecno System",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1310,
+                "empresa": "Antera Ind e Com (M)",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1311,
+                "empresa": "Antera Ind e Com (F)",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1317,
+                "empresa": "We Improve",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1320,
+                "empresa": "Biagioni Bertanha ADM",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1322,
+                "empresa": "Studio CZ",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1326,
+                "empresa": "Patricia Januário",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1328,
+                "empresa": "Chahine Adm Imóveis",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1332,
+                "empresa": "Defyna Clinica Medica",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1333,
+                "empresa": "Defyna Estética Corporal",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1336,
+                "empresa": "Pelle Dorata",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1337,
+                "empresa": "NT Plásticos",
+                "enquadramento": "LR",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1340,
+                "empresa": "BGJM",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1345,
+                "empresa": "Sivonaldo da Silva",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1347,
+                "empresa": "Voivode",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1353,
+                "empresa": "DK Armarinhos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1354,
+                "empresa": "M&B Pinheirão",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1355,
+                "empresa": "MDB Automation",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1362,
+                "empresa": "Pet Shop Represa",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1363,
+                "empresa": "Leliana Domingues",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1364,
+                "empresa": "Cesar Capuzzo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1365,
+                "empresa": "Cava Projetos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1369,
+                "empresa": "Tucunaré Adm",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1372,
+                "empresa": "Ricardo T Almeida",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1374,
+                "empresa": "Lorenzo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1384,
+                "empresa": "C.A.L Transporte",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1385,
+                "empresa": "Pet Shop Ipê",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1395,
+                "empresa": "Med A. Otto",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1396,
+                "empresa": "Adriana Pereira Pinto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1402,
+                "empresa": "MHR Transporte",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1403,
+                "empresa": "Prevco Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1405,
+                "empresa": "Sami Houssami",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1415,
+                "empresa": "Beleza Pura",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1417,
+                "empresa": "Usina 26",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1418,
+                "empresa": "Verse",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1419,
+                "empresa": "Moniqui Agnes Santos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1420,
+                "empresa": "HOF Boutique",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1422,
+                "empresa": "Inclutopia",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1423,
+                "empresa": "Madri Grafica",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1427,
+                "empresa": "PE Representações",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1429,
+                "empresa": "Franco e Krepsky",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1431,
+                "empresa": "MAC2 Produções",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1433,
+                "empresa": "Mitmed",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1436,
+                "empresa": "Augusto C Marmores",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1440,
+                "empresa": "SP Bucomaxilo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1443,
+                "empresa": "HMJ Group",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1445,
+                "empresa": "Lorena Teens",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1446,
+                "empresa": "Mundo Neuro Psi",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1447,
+                "empresa": "Mundo Neuro Psi (Filial 1)",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1449,
+                "empresa": "Cliniclassy",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1452,
+                "empresa": "Orra Deals",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1453,
+                "empresa": "Clinica Espaço Mental",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1455,
+                "empresa": "AMJ Holding",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1457,
+                "empresa": "ESP",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1458,
+                "empresa": "Nanic Toque Especial",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1459,
+                "empresa": "Encore Clinica Dental",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1460,
+                "empresa": "General Bike Store",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1461,
+                "empresa": "Heloisa da Rocha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1462,
+                "empresa": "Deraldo Alves",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1463,
+                "empresa": "PMR Cavalcanti",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1464,
+                "empresa": "Clinica Espaço Mental (F)",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1465,
+                "empresa": "Rina Bakeware",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1466,
+                "empresa": "M&G Pet Shop",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1467,
+                "empresa": "Guilherme Melchiades",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1468,
+                "empresa": "AGF Administrativo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1469,
+                "empresa": "Anamnesia HUB",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1470,
+                "empresa": "Pamela Grespan",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1471,
+                "empresa": "Lavanderia We Wash",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1472,
+                "empresa": "Felipe Vieira De Souza",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1474,
+                "empresa": "Pescados Shimote",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1475,
+                "empresa": "Lotus Cosméticos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1476,
+                "empresa": "Marilia Sarquis",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1477,
+                "empresa": "Golden-8 BYTES",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1478,
+                "empresa": "Hettius Marcenaria",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1479,
+                "empresa": "Victor Eulalio",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1480,
+                "empresa": "Braggio Imoveis",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1481,
+                "empresa": "Denis Comunicação Visual",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1482,
+                "empresa": "Claudinei Gonzales",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1483,
+                "empresa": "Silvia Regina Ramos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1484,
+                "empresa": "Arildo Alves Abrahao",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11083,
+                "empresa": "Thais Soares da Rocha",
+                "enquadramento": "MEI",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11085,
+                "empresa": "Marcelo Augusto",
+                "enquadramento": "MEI",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        }
+];
+
+    let empresas = [];
+    let editUnlocked = false;
+    const EDIT_PASSWORD = "Fiscal2026";
+
+    // Inicialização da Aplicação
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarDados();
+        popularFiltroColaboradores();
+        renderizarTabela();
+        atualizarKPIs();
+        atualizarUIBloqueio();
+    });
+
+    function validarSenhaEdicao() {
+        if (editUnlocked) return true;
+        const senhaDigitada = prompt("🔒 Área Protegida! Digite a senha para liberar a edição:");
+        if (senhaDigitada === EDIT_PASSWORD) {
+            editUnlocked = true;
+            atualizarUIBloqueio();
+            alert("✅ Edição liberada com sucesso!");
+            return true;
+        } else if (senhaDigitada !== null) {
+            alert("❌ Senha incorreta! Apenas visualização permitida.");
+        }
+        return false;
+    }
+
+    function toggleLockEdicao() {
+        if (editUnlocked) {
+            editUnlocked = false;
+            atualizarUIBloqueio();
+            alert("🔒 Edição bloqueada!");
+        } else {
+            validarSenhaEdicao();
+        }
+    }
+
+    function atualizarUIBloqueio() {
+        const btn = document.getElementById('btnLock');
+        const icon = document.getElementById('lockIcon');
+        const text = document.getElementById('lockText');
+        
+        if (!btn || !icon || !text) return;
+
+        if (editUnlocked) {
+            btn.style.borderColor = "rgba(16, 185, 129, 0.4)";
+            btn.style.color = "#34d399";
+            icon.className = "fa-solid fa-lock-open";
+            text.innerText = "Edição Liberada";
+        } else {
+            btn.style.borderColor = "rgba(245, 158, 11, 0.4)";
+            btn.style.color = "#fbbf24";
+            icon.className = "fa-solid fa-lock";
+            text.innerText = "Edição Bloqueada";
+        }
+    }
+
+    // Carregamento de dados com suporte anti-perda (localStorage)
+    
+    // ==========================================
+    // CONFIGURAÇÃO DA NUVEM (FIREBASE REALTIME DB)
+    // ==========================================
+    // Banco de dados em nuvem em tempo real compartilhado para toda a equipe RBM
+    const firebaseConfig = {
+        databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
+    };
+
+    let cloudDb = null;
+    let historicoAlteracoes = [];
+
+    // Inicializar Firebase em modo seguro com fallback local
+    try {
+        if (typeof firebase !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+            cloudDb = firebase.database();
+        }
+    } catch(err) {
+        console.log("Modo offline ativo.");
+    }
+
+    // Carregar e sincronizar dados com a Nuvem + LocalStorage
+    function carregarDados() {
+        const salvos = localStorage.getItem('rbm_opcao_tributaria_2027_EXACT_HD');
+        const histSalvo = localStorage.getItem('rbm_historico_alteracoes');
+        
+        if (histSalvo) {
+            try { historicoAlteracoes = JSON.parse(histSalvo); } catch(e){}
+        }
+
+        if (salvos) {
+            try { empresas = JSON.parse(salvos); } catch (e) { empresas = [...dadosIniciais]; }
+        } else {
+            empresas = [...dadosIniciais];
+            salvarDados();
+        }
+
+        // Conectar ao ouvinte da nuvem se disponível
+        if (cloudDb) {
+            cloudDb.ref('empresas').on('value', (snapshot) => {
+                const cloudData = snapshot.val();
+                if (cloudData && Array.isArray(cloudData)) {
+                    empresas = cloudData;
+                    localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+                    renderizarTabela();
+                    atualizarKPIs();
+                    atualizarStatusNuvem(true);
+                }
+            }, (error) => {
+                atualizarStatusNuvem(false);
+            });
+
+            cloudDb.ref('historico').on('value', (snapshot) => {
+                const histData = snapshot.val();
+                if (histData && Array.isArray(histData)) {
+                    historicoAlteracoes = histData;
+                    localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
+                    renderizarHistoricoUI();
+                }
+            });
+        } else {
+            atualizarStatusNuvem(false);
+        }
+    }
+
+    function salvarDados(logMensagem = "") {
+        // 1. Salvar no LocalStorage + Backup de Segurança Duplo
+        localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+        localStorage.setItem('rbm_backup_emergencia', JSON.stringify(empresas));
+
+        // 2. Registrar log de alteração com data/hora
+        if (logMensagem) {
+            const dataHora = new Date().toLocaleString('pt-BR');
+            historicoAlteracoes.unshift({
+                dataHora: dataHora,
+                mensagem: logMensagem
+            });
+            if (historicoAlteracoes.length > 200) historicoAlteracoes.pop();
+            localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
+            renderizarHistoricoUI();
+        }
+
+        // 3. Salvar na Nuvem Compartilhada
+        if (cloudDb) {
+            cloudDb.ref('empresas').set(empresas);
+            if (logMensagem) {
+                cloudDb.ref('historico').set(historicoAlteracoes);
+            }
+        }
+        
+        atualizarKPIs();
+    }
+
+    function atualizarStatusNuvem(online) {
+        const badge = document.getElementById('cloudStatusBadge');
+        const text = document.getElementById('cloudStatusText');
+        if (!badge || !text) return;
+
+        if (online) {
+            badge.style.background = "rgba(16, 185, 129, 0.15)";
+            badge.style.color = "#34d399";
+            badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+            text.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Nuvem Sincronizada';
+        } else {
+            badge.style.background = "rgba(245, 158, 11, 0.15)";
+            badge.style.color = "#fbbf24";
+            badge.style.borderColor = "rgba(245, 158, 11, 0.3)";
+            text.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Salvo Local (Sem Perdas)';
+        }
+    }
+
+    function registrarAlteracao(detalhe) {
+        const empresa = empresas.find(e => e.cod === detalhe.cod);
+        const colab = empresa ? (empresa.colaborador || "Colaborador") : "Usuário";
+        const msg = `[${colab}] ${detalhe.acao} empresa #${detalhe.cod} (${empresa ? empresa.empresa : ''})`;
+        salvarDados(msg);
+    }
+
+    // Modal Histórico
+    function abrirModalHistorico() {
+        renderizarHistoricoUI();
+        document.getElementById('modalHistorico').classList.add('active');
+    }
+    function fecharModalHistorico() {
+        document.getElementById('modalHistorico').classList.remove('active');
+    }
+    function renderizarHistoricoUI() {
+        const lista = document.getElementById('historicoLista');
+        if (!lista) return;
+        if (historicoAlteracoes.length === 0) {
+            lista.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhuma alteração registrada ainda.</p>';
+            return;
+        }
+        lista.innerHTML = historicoAlteracoes.map(item => `
+            <div style="padding: 8px 12px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between;">
+                <span style="font-weight: 600;">${item.mensagem}</span>
+                <span style="color: var(--text-muted); font-size: 11px;">${item.dataHora}</span>
+            </div>
+        `).join('');
+    }
+    function limparHistorico() {
+        if (confirm("Deseja limpar o histórico de alterações?")) {
+            historicoAlteracoes = [];
+            localStorage.removeItem('rbm_historico_alteracoes');
+            if (cloudDb) cloudDb.ref('historico').remove();
+            renderizarHistoricoUI();
+        }
+    }
+
+
+
+function popularFiltroColaboradores() {
+        const select = document.getElementById('colaboradorFilter');
+        const colaboradores = [...new Set(empresas.map(e => e.colaborador).filter(Boolean))];
+        select.innerHTML = '<option value="">Todos os Colaboradores</option>';
+        colaboradores.forEach(c => {
+            select.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+    }
+
+    function renderizarTabela() {
+        const corpo = document.getElementById('tabelaCorpo');
+        const termoBusca = document.getElementById('searchFilter').value.toLowerCase();
+        const colabFiltro = document.getElementById('colaboradorFilter').value;
+        const enqFiltro = document.getElementById('enquadramentoFilter').value;
+        const statusFiltro = document.getElementById('statusFilter').value;
+        const opcaoFiltro = document.getElementById('opcao2027Filter').value;
+
+        const filtrados = empresas.filter(emp => {
+            const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
+            const matchColab = !colabFiltro || emp.colaborador === colabFiltro;
+            const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
+            const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? emp.levantamento : !emp.levantamento);
+            const matchOpcao = !opcaoFiltro || (opcaoFiltro === 'Pendente' ? !emp.opcao2027 : emp.opcao2027 === opcaoFiltro);
+            const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
+            const matchModelo = !modeloFiltro || (modeloFiltro === 'Pendente' ? !emp.modeloNegocio : emp.modeloNegocio === modeloFiltro);
+
+            return matchBusca && matchColab && matchEnq && matchStatus && matchOpcao && matchModelo;
+        });
+
+        document.getElementById('registrosCount').innerText = `Mostrando ${filtrados.length} de ${empresas.length} empresas`;
+
+        corpo.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            corpo.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">Nenhuma empresa encontrada com os filtros selecionados.</td></tr>`;
+            return;
+        }
+
+        filtrados.forEach(emp => {
+            const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
+            const tr = document.createElement('tr');
+
+            // Classe para estilo da opção selecionada
+            let classeOpcao = '';
+            if (emp.opcao2027 === 'Híbrida') classeOpcao = 'hibrida';
+            else if (emp.opcao2027 === 'Tradicional') classeOpcao = 'tradicional';
+            else if (emp.opcao2027 === 'Lucro Presumido') classeOpcao = 'presumido';
+            else if (emp.opcao2027 === 'Lucro Real') classeOpcao = 'real';
+
+            tr.innerHTML = `
+                <td><strong>#${emp.cod}</strong></td>
+                <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
+                <td>
+                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : '')}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 120px;">
+                        <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
+                        <option value="B2B" ${emp.modeloNegocio === 'B2B' ? 'selected' : ''}>B2B</option>
+                        <option value="B2C" ${emp.modeloNegocio === 'B2C' ? 'selected' : ''}>B2C</option>
+                    </select>
+                </td>
+                <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
+                <td style="text-align: center;">
+                    <div class="check-status ${emp.levantamento ? 'done' : 'pending'}" onclick="toggleLevantamento(${indexOriginal})" title="Clique para alterar status">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </td>
+                <td>
+                    <select class="select-opcao ${classeOpcao}" onchange="alterarOpcao2027(${indexOriginal}, this.value)">
+                        <option value="" ${!emp.opcao2027 ? 'selected' : ''}>-- Selecionar Opção --</option>
+                        <option value="Híbrida" ${emp.opcao2027 === 'Híbrida' ? 'selected' : ''}>Híbrida</option>
+                        <option value="Tradicional" ${emp.opcao2027 === 'Tradicional' ? 'selected' : ''}>Tradicional</option>
+                        <option value="Lucro Presumido" ${emp.opcao2027 === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
+                        <option value="Lucro Real" ${emp.opcao2027 === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="obs-input" value="${emp.colaborador || ''}" placeholder="Nome..." onchange="alterarColaborador(${indexOriginal}, this.value)">
+                </td>
+                <td>
+                    <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Inserir observação..." onchange="alterarObs(${indexOriginal}, this.value)">
+                </td>
+                <td style="text-align: center;">
+                    <button class="btn-icon" onclick="excluirEmpresa(${indexOriginal})" title="Excluir Empresa"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            corpo.appendChild(tr);
+        });
+    }
+
+    function toggleLevantamento(index) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].levantamento = !empresas[index].levantamento;
+        const emp = empresas[index];
+        const statusText = emp.levantamento ? "marcou como CONCLUÍDO (✔️)" : "marcou como PENDENTE";
+        salvarDados(`[${emp.colaborador || 'Fiscal'}] ${statusText} a empresa #${emp.cod} (${emp.empresa})`);
+        renderizarTabela();
+    }
+
+    
+    function alterarModeloNegocio(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].modeloNegocio = valor;
+        const emp = empresas[index];
+        salvarDados(`[${emp.colaborador || 'Fiscal'}] alterou Modelo para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
+        renderizarTabela();
+    }
+
+function alterarOpcao2027(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].opcao2027 = valor;
+        if (valor && !empresas[index].levantamento) {
+            empresas[index].levantamento = true;
+        }
+        const emp = empresas[index];
+        salvarDados(`[${emp.colaborador || 'Fiscal'}] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
+        renderizarTabela();
+    }
+
+    
+    function alterarNomeEmpresa(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].empresa = valor;
+        salvarDados();
+    }
+function alterarObs(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].obs = valor;
+        salvarDados();
+    }
+
+    function alterarColaborador(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].colaborador = valor;
+        salvarDados();
+        popularFiltroColaboradores();
+    }
+
+    function excluirEmpresa(index) {
+        if (!validarSenhaEdicao()) return;
+        if (confirm(`Tem certeza que deseja excluir a empresa #${empresas[index].cod}?`)) {
+            empresas.splice(index, 1);
+            salvarDados();
+            renderizarTabela();
+        }
+    }
+
+    function filtrarTabela() {
+        renderizarTabela();
+    }
+
+    function atualizarKPIs() {
+        const total = empresas.length;
+        const levantados = empresas.filter(e => e.levantamento).length;
+        const hibridas = empresas.filter(e => e.opcao2027 === 'Híbrida').length;
+        const presumidoReal = empresas.filter(e => e.opcao2027 === 'Lucro Presumido' || e.opcao2027 === 'Lucro Real').length;
+
+        document.getElementById('kpiTotal').innerText = total;
+        document.getElementById('kpiLevantados').innerText = `${levantados} (${total ? Math.round((levantados/total)*100) : 0}%)`;
+        document.getElementById('kpiHibrida').innerText = hibridas;
+        document.getElementById('kpiPresumidoReal').innerText = presumidoReal;
+    }
+
+    // Modal Nova Empresa
+    function abrirModalNovaEmpresa() {
+        if (!validarSenhaEdicao()) return;
+        document.getElementById('modalEmpresa').classList.add('active');
+    }
+
+    function fecharModalEmpresa() {
+        document.getElementById('modalEmpresa').classList.remove('active');
+    }
+
+    function salvarNovaEmpresa() {
+        const cod = parseInt(document.getElementById('modalCod').value);
+        const nome = document.getElementById('modalNome').value.trim();
+        const enquadramento = document.getElementById('modalEnquadramento').value;
+        const colaborador = document.getElementById('modalColaborador').value;
+
+        if (!cod || !nome) {
+            alert('Por favor preencha o código e o nome da empresa.');
+            return;
+        }
+
+        empresas.push({
+            cod: cod,
+            empresa: nome,
+            enquadramento: enquadramento,
+            levantamento: false,
+            opcao2027: '',
+            colaborador: colaborador,
+            obs: ''
+        });
+
+        salvarDados();
+        popularFiltroColaboradores();
+        renderizarTabela();
+        fecharModalEmpresa();
+
+        // Limpar modal
+        document.getElementById('modalCod').value = '';
+        document.getElementById('modalNome').value = '';
+    }
+
+    // Exportar para Excel (.xlsx)
+    function exportarExcel() {
+        const dadosExportar = empresas.map(e => ({
+            "Código": e.cod,
+            "Empresa": e.empresa,
+            "Modelo (B2B/B2C)": e.modeloNegocio || 'Pendente',
+            "Enquadramento 2026": e.enquadramento === 'SN' ? 'Simples Nacional' : e.enquadramento,
+            "Levantamento Realizado": e.levantamento ? 'SIM' : 'NÃO',
+            "Opção 2027": e.opcao2027 || 'Pendente',
+            "Colaborador": e.colaborador || '',
+            "Observação": e.obs || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dadosExportar);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Opção Tributária 2027");
+        XLSX.writeFile(wb, `Controle_Opcao_Tributaria_2027_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // Importação de Dados (Excel/JSON)
+    function importarDados(event) {
+        if (!validarSenhaEdicao()) return;
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                if (file.name.endsWith('.json')) {
+                    const dados = JSON.parse(e.target.result);
+                    if (Array.isArray(dados)) {
+                        empresas = dados;
+                        salvarDados();
+                        renderizarTabela();
+                        alert('Dados importados com sucesso!');
+                    }
+                } else {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (json.length > 0) {
+                        empresas = json.map((item, idx) => ({
+                            cod: item["Código"] || item["CÓD"] || (idx + 1),
+                            empresa: item["Empresa"] || item["NOME DA EMPRESA"] || `Empresa ${idx+1}`,
+                            enquadramento: (item["Enquadramento 2026"] || item["ENQUADRAMENTO"] || 'SN').includes('Simples') ? 'SN' : (item["Enquadramento 2026"] || 'SN'),
+                            levantamento: item["Levantamento Realizado"] === 'SIM' || item["Levantamento Realizado"] === true || item["LEVANTAMENTO"] === 'S',
+                            modeloNegocio: item["Modelo (B2B/B2C)"] || item["MODELO"] || item["Modelo"] || '',
+                            opcao2027: item["Opção 2027"] || item["OPÇÃO 2027"] || '',
+                            colaborador: item["Colaborador"] || item["COLABORADOR"] || 'Patrícia',
+                            obs: item["Observação"] || item["OBSERVAÇÃO"] || ''
+                        }));
+                        salvarDados();
+                        popularFiltroColaboradores();
+                        renderizarTabela();
+                        alert(`${empresas.length} empresas importadas da planilha Excel com sucesso!`);
+                    }
+                }
+            } catch (err) {
+                alert('Erro ao importar arquivo. Verifique o formato do arquivo.');
+            }
+        };
+
+        if (file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    // Toggle Dark/Light Theme
+    function toggleTheme() {
+        document.body.classList.toggle('light-mode');
+    }
+</script>
+
+
+<!-- Modal Histórico de Alterações -->
+<div class="modal-backdrop" id="modalHistorico">
+    <div class="modal" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Alterações da Equipe</h3>
+            <button class="btn-icon" onclick="fecharModalHistorico()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; font-size: 12px;" id="historicoLista">
+            <p style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhuma alteração registrada ainda nesta sessão.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="limparHistorico()">Limpar Histórico</button>
+            <button class="btn btn-primary" onclick="fecharModalHistorico()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+TYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Opção Tributária – 2027 | RBM Contábil</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS para Excel import/export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase Cloud Sync SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --primary-dark: #0f172a;
+            --secondary: #0f766e;
+            --accent: #d97706;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --blue-badge: #0284c7;
+            --radius: 12px;
+            --transition: all 0.25s ease-in-out;
+        }
+
+        .light-mode {
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary-dark: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+            transition: var(--transition);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 20px 28px;
+            border-radius: var(--radius);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title .icon-box {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #2563eb, #0d9488);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #60a5fa, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .light-mode .header-title h1 {
+            background: linear-gradient(135deg, #1e40af, #0f766e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857, #065f46);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary-light);
+        }
+
+        .auto-save-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+            background: var(--success-bg);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            font-weight: 600;
+        }
+
+        /* Dashboard KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: var(--transition);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(96, 165, 250, 0.4);
+        }
+
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .kpi-info h3 {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .kpi-info p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Filter Controls Bar */
+        .filter-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 1200px) {
+            .filter-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-item label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            background: var(--bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Data Table Section */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .table-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header-bar h2 {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 65vh;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        th {
+            padding: 14px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--card-border);
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--card-border);
+            transition: var(--transition);
+        }
+
+        tbody tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        td {
+            padding: 12px 16px;
+            vertical-align: middle;
+        }
+
+        /* Status & Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-sn { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-lp { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-lr { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+        .check-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .check-status.done {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            font-size: 16px;
+        }
+
+        .check-status.pending {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px dashed var(--card-border);
+            color: transparent;
+        }
+
+        .check-status.pending:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-light);
+        }
+
+        /* Option Select Dropdown 2027 */
+        .select-opcao {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid var(--card-border);
+            background: var(--bg);
+            color: var(--text-main);
+            cursor: pointer;
+            width: 100%;
+            min-width: 160px;
+            transition: var(--transition);
+        }
+
+        .select-opcao.hibrida { border-color: #8b5cf6; color: #a78bfa; background: rgba(139, 92, 246, 0.1); }
+        .select-opcao.tradicional { border-color: #3b82f6; color: #60a5fa; background: rgba(59, 130, 246, 0.1); }
+        .select-opcao.presumido { border-color: #f59e0b; color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
+        .select-opcao.real { border-color: #ec4899; color: #f472b6; background: rgba(236, 72, 153, 0.1); }
+        .select-opcao.b2b { border-color: #0284c7; color: #38bdf8; background: rgba(2, 132, 199, 0.12); }
+        .select-opcao.b2c { border-color: #10b981; color: #34d399; background: rgba(16, 185, 129, 0.12); }
+
+
+        /* Observation & Collaborator Input */
+        .obs-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: var(--transition);
+        }
+
+        .obs-input:hover, .obs-input:focus {
+            background: var(--bg);
+            border-color: var(--card-border);
+        }
+
+        /* Action Buttons in Table */
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-icon:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Modal styling */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .modal-backdrop.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 550px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Print styles */
+        @media print {
+            body { padding: 0; background: white; color: black; }
+            header, .filter-card, .kpi-grid, .btn, .btn-icon, th:last-child, td:last-child { display: none !important; }
+            .table-container { border: none; box-shadow: none; }
+            table { width: 100%; border: 1px solid #ccc; }
+            th, td { border: 1px solid #ccc; color: black !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <div class="header-title">
+            <div class="icon-box">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+                <h1>Controle de Opção Tributária – 2027</h1>
+                <p>Gestão e Levantamento Tributário (IBS/CBS - Transição Reforma Tributária)</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="auto-save-badge" id="cloudStatusBadge" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+                <i class="fa-solid fa-cloud"></i> <span id="cloudStatusText">Sincronizando Nuvem...</span>
+            </div>
+            <button class="btn btn-outline" onclick="abrirModalHistorico()" title="Ver Histórico de Alterações da Equipe">
+                <i class="fa-solid fa-clock-rotate-left"></i> Histórico
+            </button>
+
+            <button class="btn btn-outline" id="btnLock" onclick="toggleLockEdicao()" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                <i class="fa-solid fa-lock" id="lockIcon"></i> <span id="lockText">Edição Bloqueada</span>
+            </button>
+            <button class="btn btn-primary" onclick="abrirModalNovaEmpresa()">
+                <i class="fa-solid fa-plus"></i> Nova Empresa
+            </button>
+            <button class="btn btn-success" onclick="exportarExcel()">
+                <i class="fa-solid fa-file-excel"></i> Exportar Excel
+            </button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
+                <i class="fa-solid fa-file-import"></i> Importar
+            </button>
+            <input type="file" id="importFile" accept=".xlsx, .csv, .json" style="display: none;" onchange="importarDados(event)">
+            <button class="btn btn-outline" onclick="toggleTheme()" title="Alternar Tema">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+                <i class="fa-solid fa-building"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiTotal">0</h3>
+                <p>Total de Empresas</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiLevantados">0</h3>
+                <p>Levantamentos Feitos (✔️)</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">
+                <i class="fa-solid fa-code-fork"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiHibrida">0</h3>
+                <p>Opção Híbrida 2027</p>
+            </div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div class="kpi-info">
+                <h3 id="kpiPresumidoReal">0</h3>
+                <p>Lucro Presumido / Real</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+        <div class="filter-grid" style="grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;">
+            <div class="filter-item">
+                <label><i class="fa-solid fa-magnifying-glass"></i> Buscar Empresa / Código</label>
+                <input type="text" id="searchFilter" class="form-control" placeholder="Digite o nome ou código..." oninput="filtrarTabela()">
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-user"></i> Colaborador</label>
+                <select id="colaboradorFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos os Colaboradores</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-layer-group"></i> Enquadramento 2026</label>
+                <select id="enquadramentoFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos</option>
+                    <option value="SN">Simples Nacional (SN)</option>
+                    <option value="LP">Lucro Presumido (LP)</option>
+                    <option value="LR">Lucro Real (LR)</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-list-check"></i> Status Levantamento</label>
+                <select id="statusFilter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todos</option>
+                    <option value="concluido">✔️ Concluído</option>
+                    <option value="pendente">⏳ Pendente</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label><i class="fa-solid fa-sliders"></i> Opção 2027</label>
+                <select id="opcao2027Filter" class="form-control" onchange="filtrarTabela()">
+                    <option value="">Todas as Opções</option>
+                    <option value="Híbrida">Híbrida</option>
+                    <option value="Tradicional">Tradicional</option>
+                    <option value="Lucro Presumido">Lucro Presumido</option>
+                    <option value="Lucro Real">Lucro Real</option>
+                    <option value="Pendente">Não Definida</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <div class="table-header-bar">
+            <h2><i class="fa-solid fa-table-list"></i> Listagem de Empresas e Opções Tributárias</h2>
+            <div style="font-size: 12px; color: var(--text-muted);" id="registrosCount">
+                Mostrando 0 empresas
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">CÓD</th>
+                        <th>NOME DA EMPRESA</th>
+                        <th style="width: 140px;">MODELO (B2B/B2C)</th>
+                        <th style="width: 160px;">ENQUADRAMENTO 2026</th>
+                        <th style="width: 140px; text-align: center;">LEVANTAMENTO</th>
+                        <th style="width: 220px;">OPÇÃO 2027</th>
+                        <th style="width: 160px;">COLABORADOR</th>
+                        <th>OBSERVAÇÃO</th>
+                        <th style="width: 60px; text-align: center;">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo">
+                    <!-- Gerado via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Empresa -->
+<div class="modal-backdrop" id="modalEmpresa">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Cadastrar Nova Empresa</h3>
+            <button class="btn-icon" onclick="fecharModalEmpresa()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Código da Empresa</label>
+            <input type="number" id="modalCod" class="form-control" placeholder="Ex: 105">
+        </div>
+        <div class="form-group">
+            <label>Nome / Razão Social</label>
+            <input type="text" id="modalNome" class="form-control" placeholder="Razão social da empresa">
+        </div>
+        <div class="form-group">
+            <label>Enquadramento 2026</label>
+            <select id="modalEnquadramento" class="form-control">
+                <option value="SN">Simples Nacional (SN)</option>
+                <option value="LP">Lucro Presumido (LP)</option>
+                <option value="LR">Lucro Real (LR)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Colaborador Responsável</label>
+            <select id="modalColaborador" class="form-control">
+                <option value="Patrícia">Patrícia</option>
+                <option value="Simone">Simone</option>
+                <option value="Outro">Outro</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="fecharModalEmpresa()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarNovaEmpresa()">Salvar Empresa</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Base Inicial extraída diretamente do relatório fiscal fornecido
+    const dadosIniciais = [
+        {
+                "cod": 1,
+                "empresa": "RBM Contabil",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 10,
+                "empresa": "Bar Pioneira",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11,
+                "empresa": "Academia Estilo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 30,
+                "empresa": "Geci Alves",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 44,
+                "empresa": "Trans Planalto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 134,
+                "empresa": "Auto Mec Giba",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 272,
+                "empresa": "HGA Corretora",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 286,
+                "empresa": "Cemed",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 303,
+                "empresa": "Dover's",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 319,
+                "empresa": "J.M.M. Prod Limpeza",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 364,
+                "empresa": "Isabel Cristina Naddeo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 395,
+                "empresa": "Comercial Mac Jordan",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 416,
+                "empresa": "Lanchonete do Fincos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 438,
+                "empresa": "Zelar",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 496,
+                "empresa": "AS Rocha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 532,
+                "empresa": "Vieira e Soares",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 553,
+                "empresa": "AT Shimamoto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 573,
+                "empresa": "Silpe",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 586,
+                "empresa": "SRM Empório",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 621,
+                "empresa": "Biondo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 629,
+                "empresa": "HMJ",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 638,
+                "empresa": "Garba",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 659,
+                "empresa": "Natureza Animal",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 665,
+                "empresa": "Danielle Ribeiro",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 670,
+                "empresa": "Adami Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 683,
+                "empresa": "Braggio e Molina",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 684,
+                "empresa": "Maf",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 707,
+                "empresa": "Dipapel",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 751,
+                "empresa": "JBJ Bomboniere",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 756,
+                "empresa": "Dyan",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 769,
+                "empresa": "TAM",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 799,
+                "empresa": "Centra Sport Bar",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 831,
+                "empresa": "Eder",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 836,
+                "empresa": "Hiper Boi Empório",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 843,
+                "empresa": "Cesonia",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 854,
+                "empresa": "SKM",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 865,
+                "empresa": "Auto S Nova Paulinho",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 889,
+                "empresa": "Vargas Clin Med",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 916,
+                "empresa": "Seta Telecom",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 940,
+                "empresa": "Carlimp",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 958,
+                "empresa": "Auto S Trans Paulinho",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 968,
+                "empresa": "Antolima",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 977,
+                "empresa": "4Kids",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1003,
+                "empresa": "Terada e Terada",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1017,
+                "empresa": "Betaz",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1020,
+                "empresa": "Alvtec",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1021,
+                "empresa": "Alvtec Filial",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1039,
+                "empresa": "Sob Port",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1045,
+                "empresa": "Droide",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1050,
+                "empresa": "Avic Rec Passaros",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1054,
+                "empresa": "Sincronismo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1055,
+                "empresa": "Eden",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1059,
+                "empresa": "Riwapac",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1064,
+                "empresa": "Bomfa",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1068,
+                "empresa": "Dry Master",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1082,
+                "empresa": "Profusão",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1113,
+                "empresa": "Vera Lucia Calcados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1122,
+                "empresa": "Tudo Prata",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1135,
+                "empresa": "SWR Manutenção",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1136,
+                "empresa": "Cromação",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1138,
+                "empresa": "JJE Pescados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1144,
+                "empresa": "Superm Horti Pinheirao",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1158,
+                "empresa": "Bazar Vila Euclides",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1159,
+                "empresa": "J.Valfredo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1165,
+                "empresa": "Comercio Roupas Planalto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1171,
+                "empresa": "WB Som",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1186,
+                "empresa": "Omegatron",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1195,
+                "empresa": "Barbosa e Oliveira",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1211,
+                "empresa": "Serelepe Didaticos",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1217,
+                "empresa": "CEOR Administração",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1219,
+                "empresa": "HMS",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1226,
+                "empresa": "Calceaki",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1228,
+                "empresa": "Solução Molas",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1241,
+                "empresa": "Bracar",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1246,
+                "empresa": "109 Centro Treinamento",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1253,
+                "empresa": "M&S Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1261,
+                "empresa": "Biagioni Bertanha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1263,
+                "empresa": "Edi Labs",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1274,
+                "empresa": "J & L",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1277,
+                "empresa": "Rio Tera",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1278,
+                "empresa": "Santa Rita Assessoria",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1292,
+                "empresa": "JKE Pescados",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1301,
+                "empresa": "P. U. Latino América",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1303,
+                "empresa": "Herman Wendich",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1307,
+                "empresa": "Henrique Caravanti",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1309,
+                "empresa": "Eletronica Tecno System",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1310,
+                "empresa": "Antera Ind e Com (M)",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1311,
+                "empresa": "Antera Ind e Com (F)",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1317,
+                "empresa": "We Improve",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1320,
+                "empresa": "Biagioni Bertanha ADM",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1322,
+                "empresa": "Studio CZ",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1326,
+                "empresa": "Patricia Januário",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1328,
+                "empresa": "Chahine Adm Imóveis",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1332,
+                "empresa": "Defyna Clinica Medica",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1333,
+                "empresa": "Defyna Estética Corporal",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1336,
+                "empresa": "Pelle Dorata",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1337,
+                "empresa": "NT Plásticos",
+                "enquadramento": "LR",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1340,
+                "empresa": "BGJM",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1345,
+                "empresa": "Sivonaldo da Silva",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1347,
+                "empresa": "Voivode",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1353,
+                "empresa": "DK Armarinhos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1354,
+                "empresa": "M&B Pinheirão",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1355,
+                "empresa": "MDB Automation",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1362,
+                "empresa": "Pet Shop Represa",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1363,
+                "empresa": "Leliana Domingues",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1364,
+                "empresa": "Cesar Capuzzo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1365,
+                "empresa": "Cava Projetos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1369,
+                "empresa": "Tucunaré Adm",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1372,
+                "empresa": "Ricardo T Almeida",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1374,
+                "empresa": "Lorenzo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1384,
+                "empresa": "C.A.L Transporte",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1385,
+                "empresa": "Pet Shop Ipê",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1395,
+                "empresa": "Med A. Otto",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1396,
+                "empresa": "Adriana Pereira Pinto",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1402,
+                "empresa": "MHR Transporte",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1403,
+                "empresa": "Prevco Serviços",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1405,
+                "empresa": "Sami Houssami",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1415,
+                "empresa": "Beleza Pura",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1417,
+                "empresa": "Usina 26",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1418,
+                "empresa": "Verse",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1419,
+                "empresa": "Moniqui Agnes Santos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1420,
+                "empresa": "HOF Boutique",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1422,
+                "empresa": "Inclutopia",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1423,
+                "empresa": "Madri Grafica",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1427,
+                "empresa": "PE Representações",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1429,
+                "empresa": "Franco e Krepsky",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1431,
+                "empresa": "MAC2 Produções",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1433,
+                "empresa": "Mitmed",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1436,
+                "empresa": "Augusto C Marmores",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1440,
+                "empresa": "SP Bucomaxilo",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1443,
+                "empresa": "HMJ Group",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1445,
+                "empresa": "Lorena Teens",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1446,
+                "empresa": "Mundo Neuro Psi",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1447,
+                "empresa": "Mundo Neuro Psi (Filial 1)",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1449,
+                "empresa": "Cliniclassy",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1452,
+                "empresa": "Orra Deals",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1453,
+                "empresa": "Clinica Espaço Mental",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1455,
+                "empresa": "AMJ Holding",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1457,
+                "empresa": "ESP",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1458,
+                "empresa": "Nanic Toque Especial",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1459,
+                "empresa": "Encore Clinica Dental",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1460,
+                "empresa": "General Bike Store",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1461,
+                "empresa": "Heloisa da Rocha",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1462,
+                "empresa": "Deraldo Alves",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1463,
+                "empresa": "PMR Cavalcanti",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1464,
+                "empresa": "Clinica Espaço Mental (F)",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1465,
+                "empresa": "Rina Bakeware",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1466,
+                "empresa": "M&G Pet Shop",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1467,
+                "empresa": "Guilherme Melchiades",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1468,
+                "empresa": "AGF Administrativo",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1469,
+                "empresa": "Anamnesia HUB",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1470,
+                "empresa": "Pamela Grespan",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1471,
+                "empresa": "Lavanderia We Wash",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1472,
+                "empresa": "Felipe Vieira De Souza",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1474,
+                "empresa": "Pescados Shimote",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1475,
+                "empresa": "Lotus Cosméticos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1476,
+                "empresa": "Marilia Sarquis",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1477,
+                "empresa": "Golden-8 BYTES",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1478,
+                "empresa": "Hettius Marcenaria",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1479,
+                "empresa": "Victor Eulalio",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1480,
+                "empresa": "Braggio Imoveis",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1481,
+                "empresa": "Denis Comunicação Visual",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 1482,
+                "empresa": "Claudinei Gonzales",
+                "enquadramento": "LP",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1483,
+                "empresa": "Silvia Regina Ramos",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Patricia",
+                "obs": ""
+        },
+        {
+                "cod": 1484,
+                "empresa": "Arildo Alves Abrahao",
+                "enquadramento": "SN",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11083,
+                "empresa": "Thais Soares da Rocha",
+                "enquadramento": "MEI",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        },
+        {
+                "cod": 11085,
+                "empresa": "Marcelo Augusto",
+                "enquadramento": "MEI",
+                "levantamento": false,
+                "opcao2027": "",
+                "colaborador": "Renata",
+                "obs": ""
+        }
+];
+
+    let empresas = [];
+    let editUnlocked = false;
+    const EDIT_PASSWORD = "Fiscal2026";
+
+    // Inicialização da Aplicação
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarDados();
+        popularFiltroColaboradores();
+        renderizarTabela();
+        atualizarKPIs();
+        atualizarUIBloqueio();
+    });
+
+    function validarSenhaEdicao() {
+        if (editUnlocked) return true;
+        const senhaDigitada = prompt("🔒 Área Protegida! Digite a senha para liberar a edição:");
+        if (senhaDigitada === EDIT_PASSWORD) {
+            editUnlocked = true;
+            atualizarUIBloqueio();
+            alert("✅ Edição liberada com sucesso!");
+            return true;
+        } else if (senhaDigitada !== null) {
+            alert("❌ Senha incorreta! Apenas visualização permitida.");
+        }
+        return false;
+    }
+
+    function toggleLockEdicao() {
+        if (editUnlocked) {
+            editUnlocked = false;
+            atualizarUIBloqueio();
+            alert("🔒 Edição bloqueada!");
+        } else {
+            validarSenhaEdicao();
+        }
+    }
+
+    function atualizarUIBloqueio() {
+        const btn = document.getElementById('btnLock');
+        const icon = document.getElementById('lockIcon');
+        const text = document.getElementById('lockText');
+        
+        if (!btn || !icon || !text) return;
+
+        if (editUnlocked) {
+            btn.style.borderColor = "rgba(16, 185, 129, 0.4)";
+            btn.style.color = "#34d399";
+            icon.className = "fa-solid fa-lock-open";
+            text.innerText = "Edição Liberada";
+        } else {
+            btn.style.borderColor = "rgba(245, 158, 11, 0.4)";
+            btn.style.color = "#fbbf24";
+            icon.className = "fa-solid fa-lock";
+            text.innerText = "Edição Bloqueada";
+        }
+    }
+
+    // Carregamento de dados com suporte anti-perda (localStorage)
+    
+    // ==========================================
+    // CONFIGURAÇÃO DA NUVEM (FIREBASE REALTIME DB)
+    // ==========================================
+    // Banco de dados em nuvem em tempo real compartilhado para toda a equipe RBM
+    const firebaseConfig = {
+        databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
+    };
+
+    let cloudDb = null;
+    let historicoAlteracoes = [];
+
+    // Inicializar Firebase em modo seguro com fallback local
+    try {
+        if (typeof firebase !== 'undefined') {
+            firebase.initializeApp(firebaseConfig);
+            cloudDb = firebase.database();
+        }
+    } catch(err) {
+        console.log("Modo offline ativo.");
+    }
+
+    // Carregar e sincronizar dados com a Nuvem + LocalStorage
+    function carregarDados() {
+        const salvos = localStorage.getItem('rbm_opcao_tributaria_2027_EXACT_HD');
+        const histSalvo = localStorage.getItem('rbm_historico_alteracoes');
+        
+        if (histSalvo) {
+            try { historicoAlteracoes = JSON.parse(histSalvo); } catch(e){}
+        }
+
+        if (salvos) {
+            try { empresas = JSON.parse(salvos); } catch (e) { empresas = [...dadosIniciais]; }
+        } else {
+            empresas = [...dadosIniciais];
+            salvarDados();
+        }
+
+        // Conectar ao ouvinte da nuvem se disponível
+        if (cloudDb) {
+            cloudDb.ref('empresas').on('value', (snapshot) => {
+                const cloudData = snapshot.val();
+                if (cloudData && Array.isArray(cloudData)) {
+                    empresas = cloudData;
+                    localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+                    renderizarTabela();
+                    atualizarKPIs();
+                    atualizarStatusNuvem(true);
+                }
+            }, (error) => {
+                atualizarStatusNuvem(false);
+            });
+
+            cloudDb.ref('historico').on('value', (snapshot) => {
+                const histData = snapshot.val();
+                if (histData && Array.isArray(histData)) {
+                    historicoAlteracoes = histData;
+                    localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
+                    renderizarHistoricoUI();
+                }
+            });
+        } else {
+            atualizarStatusNuvem(false);
+        }
+    }
+
+    function salvarDados(logMensagem = "") {
+        // 1. Salvar no LocalStorage + Backup de Segurança Duplo
+        localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+        localStorage.setItem('rbm_backup_emergencia', JSON.stringify(empresas));
+
+        // 2. Registrar log de alteração com data/hora
+        if (logMensagem) {
+            const dataHora = new Date().toLocaleString('pt-BR');
+            historicoAlteracoes.unshift({
+                dataHora: dataHora,
+                mensagem: logMensagem
+            });
+            if (historicoAlteracoes.length > 200) historicoAlteracoes.pop();
+            localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
+            renderizarHistoricoUI();
+        }
+
+        // 3. Salvar na Nuvem Compartilhada
+        if (cloudDb) {
+            cloudDb.ref('empresas').set(empresas);
+            if (logMensagem) {
+                cloudDb.ref('historico').set(historicoAlteracoes);
+            }
+        }
+        
+        atualizarKPIs();
+    }
+
+    function atualizarStatusNuvem(online) {
+        const badge = document.getElementById('cloudStatusBadge');
+        const text = document.getElementById('cloudStatusText');
+        if (!badge || !text) return;
+
+        if (online) {
+            badge.style.background = "rgba(16, 185, 129, 0.15)";
+            badge.style.color = "#34d399";
+            badge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+            text.innerHTML = '<i class="fa-solid fa-cloud-check"></i> Nuvem Sincronizada';
+        } else {
+            badge.style.background = "rgba(245, 158, 11, 0.15)";
+            badge.style.color = "#fbbf24";
+            badge.style.borderColor = "rgba(245, 158, 11, 0.3)";
+            text.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Salvo Local (Sem Perdas)';
+        }
+    }
+
+    function registrarAlteracao(detalhe) {
+        const empresa = empresas.find(e => e.cod === detalhe.cod);
+        const colab = empresa ? (empresa.colaborador || "Colaborador") : "Usuário";
+        const msg = `[${colab}] ${detalhe.acao} empresa #${detalhe.cod} (${empresa ? empresa.empresa : ''})`;
+        salvarDados(msg);
+    }
+
+    // Modal Histórico
+    function abrirModalHistorico() {
+        renderizarHistoricoUI();
+        document.getElementById('modalHistorico').classList.add('active');
+    }
+    function fecharModalHistorico() {
+        document.getElementById('modalHistorico').classList.remove('active');
+    }
+    function renderizarHistoricoUI() {
+        const lista = document.getElementById('historicoLista');
+        if (!lista) return;
+        if (historicoAlteracoes.length === 0) {
+            lista.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhuma alteração registrada ainda.</p>';
+            return;
+        }
+        lista.innerHTML = historicoAlteracoes.map(item => `
+            <div style="padding: 8px 12px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between;">
+                <span style="font-weight: 600;">${item.mensagem}</span>
+                <span style="color: var(--text-muted); font-size: 11px;">${item.dataHora}</span>
+            </div>
+        `).join('');
+    }
+    function limparHistorico() {
+        if (confirm("Deseja limpar o histórico de alterações?")) {
+            historicoAlteracoes = [];
+            localStorage.removeItem('rbm_historico_alteracoes');
+            if (cloudDb) cloudDb.ref('historico').remove();
+            renderizarHistoricoUI();
+        }
+    }
+
+
+
+function popularFiltroColaboradores() {
+        const select = document.getElementById('colaboradorFilter');
+        const colaboradores = [...new Set(empresas.map(e => e.colaborador).filter(Boolean))];
+        select.innerHTML = '<option value="">Todos os Colaboradores</option>';
+        colaboradores.forEach(c => {
+            select.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+    }
+
+    function renderizarTabela() {
+        const corpo = document.getElementById('tabelaCorpo');
+        const termoBusca = document.getElementById('searchFilter').value.toLowerCase();
+        const colabFiltro = document.getElementById('colaboradorFilter').value;
+        const enqFiltro = document.getElementById('enquadramentoFilter').value;
+        const statusFiltro = document.getElementById('statusFilter').value;
+        const opcaoFiltro = document.getElementById('opcao2027Filter').value;
+
+        const filtrados = empresas.filter(emp => {
+            const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
+            const matchColab = !colabFiltro || emp.colaborador === colabFiltro;
+            const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
+            const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? emp.levantamento : !emp.levantamento);
+            const matchOpcao = !opcaoFiltro || (opcaoFiltro === 'Pendente' ? !emp.opcao2027 : emp.opcao2027 === opcaoFiltro);
+            const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
+            const matchModelo = !modeloFiltro || (modeloFiltro === 'Pendente' ? !emp.modeloNegocio : emp.modeloNegocio === modeloFiltro);
+
+            return matchBusca && matchColab && matchEnq && matchStatus && matchOpcao && matchModelo;
+        });
+
+        document.getElementById('registrosCount').innerText = `Mostrando ${filtrados.length} de ${empresas.length} empresas`;
+
+        corpo.innerHTML = '';
+
+        if (filtrados.length === 0) {
+            corpo.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">Nenhuma empresa encontrada com os filtros selecionados.</td></tr>`;
+            return;
+        }
+
+        filtrados.forEach(emp => {
+            const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
+            const tr = document.createElement('tr');
+
+            // Classe para estilo da opção selecionada
+            let classeOpcao = '';
+            if (emp.opcao2027 === 'Híbrida') classeOpcao = 'hibrida';
+            else if (emp.opcao2027 === 'Tradicional') classeOpcao = 'tradicional';
+            else if (emp.opcao2027 === 'Lucro Presumido') classeOpcao = 'presumido';
+            else if (emp.opcao2027 === 'Lucro Real') classeOpcao = 'real';
+
+            tr.innerHTML = `
+                <td><strong>#${emp.cod}</strong></td>
+                <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
+                <td>
+                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : '')}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 120px;">
+                        <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
+                        <option value="B2B" ${emp.modeloNegocio === 'B2B' ? 'selected' : ''}>B2B</option>
+                        <option value="B2C" ${emp.modeloNegocio === 'B2C' ? 'selected' : ''}>B2C</option>
+                    </select>
+                </td>
+                <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
+                <td style="text-align: center;">
+                    <div class="check-status ${emp.levantamento ? 'done' : 'pending'}" onclick="toggleLevantamento(${indexOriginal})" title="Clique para alterar status">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </td>
+                <td>
+                    <select class="select-opcao ${classeOpcao}" onchange="alterarOpcao2027(${indexOriginal}, this.value)">
+                        <option value="" ${!emp.opcao2027 ? 'selected' : ''}>-- Selecionar Opção --</option>
+                        <option value="Híbrida" ${emp.opcao2027 === 'Híbrida' ? 'selected' : ''}>Híbrida</option>
+                        <option value="Tradicional" ${emp.opcao2027 === 'Tradicional' ? 'selected' : ''}>Tradicional</option>
+                        <option value="Lucro Presumido" ${emp.opcao2027 === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
+                        <option value="Lucro Real" ${emp.opcao2027 === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="obs-input" value="${emp.colaborador || ''}" placeholder="Nome..." onchange="alterarColaborador(${indexOriginal}, this.value)">
+                </td>
+                <td>
+                    <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Inserir observação..." onchange="alterarObs(${indexOriginal}, this.value)">
+                </td>
+                <td style="text-align: center;">
+                    <button class="btn-icon" onclick="excluirEmpresa(${indexOriginal})" title="Excluir Empresa"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            corpo.appendChild(tr);
+        });
+    }
+
+    function toggleLevantamento(index) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].levantamento = !empresas[index].levantamento;
+        const emp = empresas[index];
+        const statusText = emp.levantamento ? "marcou como CONCLUÍDO (✔️)" : "marcou como PENDENTE";
+        salvarDados(`[${emp.colaborador || 'Fiscal'}] ${statusText} a empresa #${emp.cod} (${emp.empresa})`);
+        renderizarTabela();
+    }
+
+    function alterarOpcao2027(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].opcao2027 = valor;
+        if (valor && !empresas[index].levantamento) {
+            empresas[index].levantamento = true;
+        }
+        const emp = empresas[index];
+        salvarDados(`[${emp.colaborador || 'Fiscal'}] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
+        renderizarTabela();
+    }
+
+    
+    function alterarNomeEmpresa(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].empresa = valor;
+        salvarDados();
+    }
+function alterarObs(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].obs = valor;
+        salvarDados();
+    }
+
+    function alterarColaborador(index, valor) {
+        if (!validarSenhaEdicao()) return;
+        empresas[index].colaborador = valor;
+        salvarDados();
+        popularFiltroColaboradores();
+    }
+
+    function excluirEmpresa(index) {
+        if (!validarSenhaEdicao()) return;
+        if (confirm(`Tem certeza que deseja excluir a empresa #${empresas[index].cod}?`)) {
+            empresas.splice(index, 1);
+            salvarDados();
+            renderizarTabela();
+        }
+    }
+
+    function filtrarTabela() {
+        renderizarTabela();
+    }
+
+    function atualizarKPIs() {
+        const total = empresas.length;
+        const levantados = empresas.filter(e => e.levantamento).length;
+        const hibridas = empresas.filter(e => e.opcao2027 === 'Híbrida').length;
+        const presumidoReal = empresas.filter(e => e.opcao2027 === 'Lucro Presumido' || e.opcao2027 === 'Lucro Real').length;
+
+        document.getElementById('kpiTotal').innerText = total;
+        document.getElementById('kpiLevantados').innerText = `${levantados} (${total ? Math.round((levantados/total)*100) : 0}%)`;
+        document.getElementById('kpiHibrida').innerText = hibridas;
+        document.getElementById('kpiPresumidoReal').innerText = presumidoReal;
+    }
+
+    // Modal Nova Empresa
+    function abrirModalNovaEmpresa() {
+        if (!validarSenhaEdicao()) return;
+        document.getElementById('modalEmpresa').classList.add('active');
+    }
+
+    function fecharModalEmpresa() {
+        document.getElementById('modalEmpresa').classList.remove('active');
+    }
+
+    function salvarNovaEmpresa() {
+        const cod = parseInt(document.getElementById('modalCod').value);
+        const nome = document.getElementById('modalNome').value.trim();
+        const enquadramento = document.getElementById('modalEnquadramento').value;
+        const colaborador = document.getElementById('modalColaborador').value;
+
+        if (!cod || !nome) {
+            alert('Por favor preencha o código e o nome da empresa.');
+            return;
+        }
+
+        empresas.push({
+            cod: cod,
+            empresa: nome,
+            enquadramento: enquadramento,
+            levantamento: false,
+            opcao2027: '',
+            colaborador: colaborador,
+            obs: ''
+        });
+
+        salvarDados();
+        popularFiltroColaboradores();
+        renderizarTabela();
+        fecharModalEmpresa();
+
+        // Limpar modal
+        document.getElementById('modalCod').value = '';
+        document.getElementById('modalNome').value = '';
+    }
+
+    // Exportar para Excel (.xlsx)
+    function exportarExcel() {
+        const dadosExportar = empresas.map(e => ({
+            "Código": e.cod,
+            "Empresa": e.empresa,
+            "Modelo (B2B/B2C)": e.modeloNegocio || 'Pendente',
+            "Enquadramento 2026": e.enquadramento === 'SN' ? 'Simples Nacional' : e.enquadramento,
+            "Levantamento Realizado": e.levantamento ? 'SIM' : 'NÃO',
+            "Opção 2027": e.opcao2027 || 'Pendente',
+            "Colaborador": e.colaborador || '',
+            "Observação": e.obs || ''
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dadosExportar);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Opção Tributária 2027");
+        XLSX.writeFile(wb, `Controle_Opcao_Tributaria_2027_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // Importação de Dados (Excel/JSON)
+    function importarDados(event) {
+        if (!validarSenhaEdicao()) return;
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                if (file.name.endsWith('.json')) {
+                    const dados = JSON.parse(e.target.result);
+                    if (Array.isArray(dados)) {
+                        empresas = dados;
+                        salvarDados();
+                        renderizarTabela();
+                        alert('Dados importados com sucesso!');
+                    }
+                } else {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (json.length > 0) {
+                        empresas = json.map((item, idx) => ({
+                            cod: item["Código"] || item["CÓD"] || (idx + 1),
+                            empresa: item["Empresa"] || item["NOME DA EMPRESA"] || `Empresa ${idx+1}`,
+                            enquadramento: (item["Enquadramento 2026"] || item["ENQUADRAMENTO"] || 'SN').includes('Simples') ? 'SN' : (item["Enquadramento 2026"] || 'SN'),
+                            levantamento: item["Levantamento Realizado"] === 'SIM' || item["Levantamento Realizado"] === true || item["LEVANTAMENTO"] === 'S',
+                            modeloNegocio: item["Modelo (B2B/B2C)"] || item["MODELO"] || item["Modelo"] || '',
+                            opcao2027: item["Opção 2027"] || item["OPÇÃO 2027"] || '',
+                            colaborador: item["Colaborador"] || item["COLABORADOR"] || 'Patrícia',
+                            obs: item["Observação"] || item["OBSERVAÇÃO"] || ''
+                        }));
+                        salvarDados();
+                        popularFiltroColaboradores();
+                        renderizarTabela();
+                        alert(`${empresas.length} empresas importadas da planilha Excel com sucesso!`);
+                    }
+                }
+            } catch (err) {
+                alert('Erro ao importar arquivo. Verifique o formato do arquivo.');
+            }
+        };
+
+        if (file.name.endsWith('.json')) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    // Toggle Dark/Light Theme
+    function toggleTheme() {
+        document.body.classList.toggle('light-mode');
+    }
+</script>
+
+
+<!-- Modal Histórico de Alterações -->
+<div class="modal-backdrop" id="modalHistorico">
+    <div class="modal" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Alterações da Equipe</h3>
+            <button class="btn-icon" onclick="fecharModalHistorico()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; font-size: 12px;" id="historicoLista">
+            <p style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhuma alteração registrada ainda nesta sessão.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="limparHistorico()">Limpar Histórico</button>
+            <button class="btn btn-primary" onclick="fecharModalHistorico()">Fechar</button>
+        </div>
+    </div>
+</div>
+
