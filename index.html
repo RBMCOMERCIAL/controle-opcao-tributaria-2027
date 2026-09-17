@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- SheetJS CDN for Excel Export/Import -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Firebase SDK (Compat) para WebSockets em Tempo Real Instantâneo -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -494,7 +497,7 @@
     <!-- TOAST NOTIFICATION -->
     <div id="toastNotify">
         <span>💾</span>
-        <span id="toastMsg">Alterações salvas e sincronizadas com todos os usuários em tempo real!</span>
+        <span id="toastMsg">Alterações salvas e transmitidas em tempo real para todos!</span>
     </div>
 
     <!-- LOGIN MODAL (Appears on start if not logged in) -->
@@ -556,7 +559,7 @@
                 <p>
                     <span>RBM Contábil | Gestão & Planejamento Fiscal</span>
                     <span class="sync-indicator">
-                        <span class="sync-pulse"></span> Sincronizado em Tempo Real (Nuvem)
+                        <span class="sync-pulse"></span> Sincronizado Instantâneo (WebSockets / Nuvem)
                     </span>
                 </p>
             </div>
@@ -2194,6 +2197,52 @@
         let usuarioAtual = "";
         let isEditing = false;
 
+        // INICIALIZAÇÃO FIREBASE WEBSOCKET REALTIME
+        let dbRef = null;
+        let histRef = null;
+
+        try {
+            if (typeof firebase !== 'undefined') {
+                const firebaseConfig = {
+                    databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
+                };
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                const db = firebase.database();
+                dbRef = db.ref("empresas_live_v1");
+                histRef = db.ref("historico_live_v1");
+
+                // Listener WebSocket Instantâneo para receber alterações de qualquer usuário na hora
+                dbRef.on("value", (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        const jsonStrLocal = JSON.stringify(empresas);
+                        const jsonStrCloud = JSON.stringify(data);
+
+                        if (jsonStrLocal !== jsonStrCloud) {
+                            empresas = data;
+                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
+                            if (!isEditing) {
+                                renderizarTabela();
+                                atualizarKPIs();
+                            }
+                        }
+                    }
+                });
+
+                histRef.on("value", (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && Array.isArray(data)) {
+                        historicoLog = data;
+                        localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+                    }
+                });
+            }
+        } catch(e) {
+            console.error("Firebase SDK Init error:", e);
+        }
+
         function exibirToast(msg) {
             const toast = document.getElementById("toastNotify");
             document.getElementById("toastMsg").textContent = msg;
@@ -2266,11 +2315,15 @@
             historicoLog.unshift(novoItem);
             localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
 
-            fetch(FIREBASE_HISTORICO_URL, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(historicoLog)
-            }).catch(err => console.error("Erro ao salvar histórico na nuvem:", err));
+            if (histRef) {
+                histRef.set(historicoLog);
+            } else {
+                fetch(FIREBASE_HISTORICO_URL + "?t=" + Date.now(), {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(historicoLog)
+                });
+            }
         }
 
         function abrirHistorico() {
@@ -2331,7 +2384,7 @@
 
             renderizarTabela();
             atualizarKPIs();
-            sincronizarComNuvem();
+            sincronizarComNuvemSemCache();
         }
 
         function salvarDados() {
@@ -2339,27 +2392,39 @@
             atualizarKPIs();
             renderizarTabela();
 
-            // Envia imediatamente para a nuvem
-            fetch(FIREBASE_URL, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(empresas)
-            }).catch(err => console.error("Erro ao salvar no Firebase:", err));
+            // Transmite instantaneamente para a nuvem Firebase via WebSocket / REST no-cache
+            if (dbRef) {
+                dbRef.set(empresas).catch(err => {
+                    fetch(FIREBASE_URL + "?t=" + Date.now(), {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        cache: "no-store",
+                        body: JSON.stringify(empresas)
+                    });
+                });
+            } else {
+                fetch(FIREBASE_URL + "?t=" + Date.now(), {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    cache: "no-store",
+                    body: JSON.stringify(empresas)
+                });
+            }
         }
 
         function salvarManualmente() {
             if (!verificarAutenticado()) return;
 
             salvarDados();
-            registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização acionada pelo usuário");
-            exibirToast("✅ Alterações salvas com sucesso! Sincronizado com todos os usuários em tempo real.");
+            registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização forçada enviada para todos os usuários");
+            exibirToast("✅ Alterações salvas com sucesso! Transmitido em tempo real para todos os usuários.");
         }
 
-        // SINCRONIZAÇÃO EM TEMPO REAL ATIVA (A CADA 1.5 SEGUNDOS)
-        function sincronizarComNuvem() {
-            if (isEditing) return; // Não atualiza se o usuário estiver digitando
+        // BUSCA FORÇADA DA NUVEM (REST NO-CACHE FALLBACK)
+        function sincronizarComNuvemSemCache() {
+            if (isEditing) return;
 
-            fetch(FIREBASE_URL)
+            fetch(FIREBASE_URL + "?t=" + Date.now(), { cache: "no-store" })
                 .then(res => res.json())
                 .then(cloudData => {
                     if (Array.isArray(cloudData) && cloudData.length > 0) {
@@ -2372,33 +2437,15 @@
                             renderizarTabela();
                             atualizarKPIs();
                         }
-                    } else if (!cloudData) {
-                        fetch(FIREBASE_URL, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(empresas)
-                        });
+                    } else if (!cloudData && dbRef) {
+                        dbRef.set(empresas);
                     }
                 })
                 .catch(err => console.log("Nuvem offline:", err));
-
-            fetch(FIREBASE_HISTORICO_URL)
-                .then(res => res.json())
-                .then(cloudHist => {
-                    if (Array.isArray(cloudHist) && cloudHist.length > 0) {
-                        const jsonHistLocal = JSON.stringify(historicoLog);
-                        const jsonHistCloud = JSON.stringify(cloudHist);
-                        if (jsonHistLocal !== jsonHistCloud) {
-                            historicoLog = cloudHist;
-                            localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
-                        }
-                    }
-                })
-                .catch(err => console.log("Histórico offline:", err));
         }
 
-        // Polling ultrarrápido em tempo real a cada 1.5 segundos
-        setInterval(sincronizarComNuvem, 1500);
+        // Polling ultrarrápido fallback a cada 1.5s com no-cache
+        setInterval(sincronizarComNuvemSemCache, 1500);
 
         function renderizarTabela() {
             const buscaInput = document.getElementById("buscaInput").value;
@@ -2485,7 +2532,7 @@
             emp.modelo = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Modelo Alterado", `De "${valAntigo || 'Vazio'}" para "${val || 'Vazio'}"`);
-            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva e transmitida!`);
         }
 
         function alterarDevolucao(cod, val, el) {
@@ -2496,7 +2543,7 @@
             emp.devolucao = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Devolução Alterada", `De "${valAntigo}" para "${val}"`);
-            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva e transmitida!`);
         }
 
         function alterarOpcao2027(cod, val, el) {
@@ -2507,7 +2554,7 @@
             emp.opcao2027 = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Opção 2027 Alterada", `De "${valAntigo || 'Vazio'}" para "${val || 'Vazio'}"`);
-            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva e transmitida!`);
         }
 
         function alterarObs(cod, val, el) {
@@ -2519,7 +2566,7 @@
             emp.obs = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Observação Alterada", `"${val}"`);
-            exibirToast(`Observação salva para [${emp.cod}] ${emp.empresa}!`);
+            exibirToast(`Observação salva e transmitida para [${emp.cod}] ${emp.empresa}!`);
         }
 
         function adicionarEmpresa() {
@@ -2554,7 +2601,7 @@
             empresas.unshift(novaEmp);
             salvarDados();
             registrarHistorico(cod, nome.trim(), "Nova Empresa Criada", `Enquadramento: ${enqUpper}`);
-            exibirToast(`Empresa ${nome.trim()} criada e sincronizada!`);
+            exibirToast(`Empresa ${nome.trim()} criada e transmitida!`);
         }
 
         function excluirEmpresa(cod) {
@@ -2566,7 +2613,7 @@
                 empresas = empresas.filter(e => e.cod !== cod);
                 salvarDados();
                 registrarHistorico(emp.cod, emp.empresa, "Empresa Excluída", `Removida do cadastro`);
-                exibirToast(`Empresa [${emp.cod}] excluída e sincronizada!`);
+                exibirToast(`Empresa [${emp.cod}] excluída e transmitida!`);
             }
         }
 
@@ -2630,7 +2677,7 @@
                             empresas = imported;
                             salvarDados();
                             registrarHistorico(0, "Múltiplas", "Importação JSON", `Base atualizada via arquivo JSON`);
-                            exibirToast("Dados importados e sincronizados!");
+                            exibirToast("Dados importados e transmitidos!");
                         }
                     } else {
                         const data = new Uint8Array(e.target.result);
@@ -2650,7 +2697,7 @@
                             }));
                             salvarDados();
                             registrarHistorico(0, "Múltiplas", "Importação Excel", `Importadas ${empresas.length} empresas`);
-                            exibirToast(`${empresas.length} empresas importadas e sincronizadas!`);
+                            exibirToast(`${empresas.length} empresas importadas e transmitidas!`);
                         }
                     }
                 } catch(err) {
