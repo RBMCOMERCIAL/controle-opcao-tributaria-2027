@@ -23,6 +23,7 @@
             --accent-green-dark: #059669;
             --accent-red: #ef4444;
             --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
             --badge-sn: #3b82f6;
             --badge-lp: #8b5cf6;
             --badge-lr: #ec4899;
@@ -82,6 +83,36 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
             margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #10b981;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .sync-pulse {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         .header-actions {
@@ -185,6 +216,10 @@
             font-weight: 700;
             margin-top: 6px;
             color: var(--text-primary);
+        }
+
+        .kpi-card.kpi-yellow .value {
+            color: #eab308;
         }
 
         .kpi-card.kpi-green .value {
@@ -298,7 +333,38 @@
             outline: none;
         }
 
-        /* GREEN ROW RULE */
+        /* LIGHT YELLOW ROW RULE (ANÁLISE PENDENTE) */
+        tr.row-pendente {
+            background-color: #fef08a !important;
+            color: #713f12 !important;
+        }
+
+        tr.row-pendente td {
+            background-color: #fef08a !important;
+            color: #713f12 !important;
+            font-weight: 600;
+        }
+
+        tr.row-pendente .table-select,
+        tr.row-pendente .table-input {
+            background-color: #fef3c7 !important;
+            color: #713f12 !important;
+            border-color: #fde047 !important;
+            font-weight: 600;
+        }
+
+        tr.row-pendente .table-select option {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        tr.row-pendente .badge {
+            background: rgba(113, 63, 18, 0.15) !important;
+            color: #713f12 !important;
+            border-color: rgba(113, 63, 18, 0.3) !important;
+        }
+
+        /* GREEN ROW RULE (ANÁLISE FINALIZADA + OPÇÃO PREENCHIDA) */
         tr.row-concluida {
             background-color: #10b981 !important;
             color: #ffffff !important;
@@ -446,7 +512,12 @@
         <div class="header">
             <div class="header-title">
                 <h1>Controle de Opção Tributária – 2027</h1>
-                <p>RBM Contábil | Gestão & Planejamento Fiscal</p>
+                <p>
+                    <span>RBM Contábil | Gestão & Planejamento Fiscal</span>
+                    <span class="sync-indicator">
+                        <span class="sync-pulse"></span> Sincronizado em Tempo Real (Nuvem)
+                    </span>
+                </p>
             </div>
             <div class="header-actions">
                 <div class="user-badge" id="userBadge" style="display: none;">
@@ -484,13 +555,13 @@
                 <div class="title">Lucro Real</div>
                 <div class="value" id="kpiLR">0</div>
             </div>
-            <div class="kpi-card kpi-green">
-                <div class="title">Concluídas (Verde)</div>
-                <div class="value" id="kpiConcluidas">0</div>
+            <div class="kpi-card kpi-yellow">
+                <div class="title">Análise Pendente</div>
+                <div class="value" id="kpiPendentesAna">0</div>
             </div>
-            <div class="kpi-card">
-                <div class="title">Pendentes</div>
-                <div class="value" id="kpiPendentes">0</div>
+            <div class="kpi-card kpi-green">
+                <div class="title">Finalizadas (Verde)</div>
+                <div class="value" id="kpiConcluidas">0</div>
             </div>
         </div>
 
@@ -525,9 +596,7 @@
                     <option value="">Todos</option>
                     <option value="Sem análise">Sem análise</option>
                     <option value="Análise pendente">Análise pendente</option>
-                    <option value="Análise solicitada">Análise solicitada</option>
                     <option value="Análise finalizada">Análise finalizada</option>
-                    <option value="Não se aplica">Não se aplica</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -2081,6 +2150,7 @@
         let empresas = [];
         let historicoLog = [];
         let usuarioAtual = "";
+        let isEditing = false;
 
         // CONTROLE DE SESSÃO / LOGIN
         function checarSessao() {
@@ -2145,7 +2215,6 @@
             historicoLog.unshift(novoItem);
             localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
 
-            // Sincroniza com Firebase cloud historico em segundo plano
             fetch(FIREBASE_HISTORICO_URL, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -2181,24 +2250,21 @@
             document.getElementById("historicoModal").style.display = "none";
         }
 
-        // CARGA E SALVAMENTO DE DADOS
+        // CARGA E SALVAMENTO DE DADOS COM TEMPO REAL
         function carregarDados() {
             checarSessao();
 
-            // Inicializa com as 167 empresas nativas
+            // Inicializa com as empresas nativas
             empresas = JSON.parse(JSON.stringify(dadosIniciais));
 
-            // Carrega empresas do localStorage
+            // Carrega do localStorage se houver salvos
             const salvos = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (salvos) {
                 try {
                     const listSalva = JSON.parse(salvos);
                     if (Array.isArray(listSalva) && listSalva.length > 0) {
                         const mapSalvos = new Map();
-                        listSalva.forEach(item => {
-                            if (item && item.cod) mapSalvos.set(item.cod, item);
-                        });
-
+                        listSalva.forEach(item => { if (item && item.cod) mapSalvos.set(item.cod, item); });
                         empresas = empresas.map(emp => mapSalvos.get(emp.cod) || emp);
                         listSalva.forEach(item => {
                             if (item && item.cod && !empresas.some(e => e.cod === item.cod)) {
@@ -2206,12 +2272,9 @@
                             }
                         });
                     }
-                } catch(e) {
-                    console.error("Erro ao ler localStorage:", e);
-                }
+                } catch(e) {}
             }
 
-            // Carrega histórico do localStorage
             const histSalvo = localStorage.getItem(HISTORICO_KEY);
             if (histSalvo) {
                 try { historicoLog = JSON.parse(histSalvo); } catch(e) {}
@@ -2227,6 +2290,7 @@
             atualizarKPIs();
             renderizarTabela();
 
+            // Envia imediatamente para a nuvem
             fetch(FIREBASE_URL, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -2234,26 +2298,23 @@
             }).catch(err => console.error("Erro ao salvar no Firebase:", err));
         }
 
+        // SINCRONIZAÇÃO EM TEMPO REAL ATIVA (A CADA 2.5 SEGUNDOS)
         function sincronizarComNuvem() {
+            if (isEditing) return; // Não recarrega se o usuário estiver digitando no momento
+
             fetch(FIREBASE_URL)
                 .then(res => res.json())
                 .then(cloudData => {
                     if (Array.isArray(cloudData) && cloudData.length > 0) {
-                        const mapCloud = new Map();
-                        cloudData.forEach(item => {
-                            if (item && item.cod) mapCloud.set(item.cod, item);
-                        });
+                        const jsonStrLocal = JSON.stringify(empresas);
+                        const jsonStrCloud = JSON.stringify(cloudData);
 
-                        empresas = empresas.map(emp => mapCloud.get(emp.cod) || emp);
-                        cloudData.forEach(item => {
-                            if (item && item.cod && !empresas.some(e => e.cod === item.cod)) {
-                                empresas.push(item);
-                            }
-                        });
-
-                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
-                        renderizarTabela();
-                        atualizarKPIs();
+                        if (jsonStrLocal !== jsonStrCloud) {
+                            empresas = cloudData;
+                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
+                            renderizarTabela();
+                            atualizarKPIs();
+                        }
                     } else if (!cloudData) {
                         fetch(FIREBASE_URL, {
                             method: "PUT",
@@ -2264,17 +2325,23 @@
                 })
                 .catch(err => console.log("Nuvem offline:", err));
 
-            // Sincroniza Histórico da Nuvem
             fetch(FIREBASE_HISTORICO_URL)
                 .then(res => res.json())
                 .then(cloudHist => {
                     if (Array.isArray(cloudHist) && cloudHist.length > 0) {
-                        historicoLog = cloudHist;
-                        localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+                        const jsonHistLocal = JSON.stringify(historicoLog);
+                        const jsonHistCloud = JSON.stringify(cloudHist);
+                        if (jsonHistLocal !== jsonHistCloud) {
+                            historicoLog = cloudHist;
+                            localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+                        }
                     }
                 })
-                .catch(err => console.log("Histórico nuvem offline:", err));
+                .catch(err => console.log("Histórico offline:", err));
         }
+
+        // Polling contínuo em tempo real a cada 2.5 segundos
+        setInterval(sincronizarComNuvem, 2500);
 
         function renderizarTabela() {
             const buscaInput = document.getElementById("buscaInput").value;
@@ -2297,17 +2364,18 @@
             });
 
             filtrados.forEach(emp => {
-                // REGRA SOLICITADA DA LINHA VERDE:
-                // 1. Devolução deve ser exatamente "Análise finalizada"
-                // 2. Opção 2027 deve estar preenchida (diferente de vazio / "selecione")
-                const isDevolucaoFinalizada = emp.devolucao === "Análise finalizada";
-                const isOpcaoPreenchida = emp.opcao2027 && emp.opcao2027 !== "";
-
-                const isConcluida = isDevolucaoFinalizada && isOpcaoPreenchida;
+                // NOVAS REGRAS DE CORES:
+                // 1. Amarelinho claro: quando Devolução for "Análise pendente"
+                // 2. Verde: quando Devolução for "Análise finalizada" E Opção 2027 estiver preenchida (!= "selecione")
+                // 3. Sem cor: quando for "Sem análise"
+                const isPendente = emp.devolucao === "Análise pendente";
+                const isConcluida = emp.devolucao === "Análise finalizada" && (emp.opcao2027 && emp.opcao2027 !== "");
 
                 const tr = document.createElement("tr");
                 if (isConcluida) {
                     tr.className = "row-concluida";
+                } else if (isPendente) {
+                    tr.className = "row-pendente";
                 }
 
                 tr.innerHTML = `
@@ -2326,11 +2394,9 @@
                     </td>
                     <td>
                         <select class="table-select" onchange="alterarDevolucao(${emp.cod}, this.value, this)">
-                            <option value="Sem análise" ${emp.devolucao === 'Sem análise' ? 'selected' : ''}>Sem análise</option>
+                            <option value="Sem análise" ${emp.devolucao === 'Sem análise' || !emp.devolucao ? 'selected' : ''}>Sem análise</option>
                             <option value="Análise pendente" ${emp.devolucao === 'Análise pendente' ? 'selected' : ''}>Análise pendente</option>
-                            <option value="Análise solicitada" ${emp.devolucao === 'Análise solicitada' ? 'selected' : ''}>Análise solicitada</option>
                             <option value="Análise finalizada" ${emp.devolucao === 'Análise finalizada' ? 'selected' : ''}>Análise finalizada</option>
-                            <option value="Não se aplica" ${emp.devolucao === 'Não se aplica' ? 'selected' : ''}>Não se aplica</option>
                         </select>
                     </td>
                     <td>
@@ -2344,7 +2410,10 @@
                     </td>
                     <td>
                         <input type="text" class="table-input" value="${emp.obs || ''}" 
-                               placeholder="Observação..." onchange="alterarObs(${emp.cod}, this.value, this)">
+                               placeholder="Observação..." 
+                               onfocus="isEditing=true"
+                               onblur="isEditing=false; alterarObs(${emp.cod}, this.value, this)"
+                               onchange="alterarObs(${emp.cod}, this.value, this)">
                     </td>
                     <td style="text-align: center;">
                         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem;" onclick="excluirEmpresa(${emp.cod})">Excluir</button>
@@ -2389,6 +2458,7 @@
             if (!verificarAutenticado()) return;
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
+            if (emp.obs === val) return;
             const valAntigo = emp.obs;
             emp.obs = val;
             salvarDados();
@@ -2451,16 +2521,16 @@
             const lp = empresas.filter(e => e.opcao2027 === "Lucro presumido").length;
             const lr = empresas.filter(e => e.opcao2027 === "Lucro real").length;
             
+            const pendentesAna = empresas.filter(e => e.devolucao === "Análise pendente").length;
             const concluidas = empresas.filter(e => e.devolucao === "Análise finalizada" && 
                                                    (e.opcao2027 && e.opcao2027 !== "")).length;
-            const pendentes = empresas.length - concluidas;
 
             document.getElementById("kpiPuro").textContent = puro;
             document.getElementById("kpiHibrido").textContent = hibrido;
             document.getElementById("kpiLP").textContent = lp;
             document.getElementById("kpiLR").textContent = lr;
+            document.getElementById("kpiPendentesAna").textContent = pendentesAna;
             document.getElementById("kpiConcluidas").textContent = concluidas;
-            document.getElementById("kpiPendentes").textContent = pendentes;
         }
 
         function toggleTheme() {
@@ -2538,7 +2608,7 @@
             }
         }
 
-        // INICIALIZAÇÃO
+        // INICIALIZAÇÃO E PRIMEIRA SINCRONIZAÇÃO DA NUVEM
         carregarDados();
 
         document.addEventListener("DOMContentLoaded", function() {
