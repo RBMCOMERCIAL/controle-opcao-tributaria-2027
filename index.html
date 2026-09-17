@@ -550,12 +550,8 @@
         }
     
         
-        tr.row-concluida td {
-            background: transparent !important;
-        }
-        tr.row-concluida:hover {
-            background: rgba(16, 185, 129, 0.25) !important;
-        }
+        
+        
 
 
         .select-opcao.simples-puro {
@@ -584,15 +580,23 @@
         }
 
 
+        
+        
+        
+
+
         tr.row-concluida {
-            background: rgba(16, 185, 129, 0.22) !important;
             border-left: 6px solid #10b981 !important;
         }
         tr.row-concluida td {
-            background: transparent !important;
+            background-color: rgba(16, 185, 129, 0.28) !important;
+            color: #ffffff !important;
         }
-        tr.row-concluida:hover {
-            background: rgba(16, 185, 129, 0.32) !important;
+        tr.row-concluida td strong {
+            color: #ffffff !important;
+        }
+        tr.row-concluida:hover td {
+            background-color: rgba(16, 185, 129, 0.40) !important;
         }
 
 </style>
@@ -2318,30 +2322,22 @@
 
     let empresas = [];
     let editUnlocked = false;
+    
     const EDIT_PASSWORD = "Fiscal2026";
 
-    // Inicialização da Aplicação
-    document.addEventListener('DOMContentLoaded', () => {
-        carregarDados();
-        // popularFiltroColaboradores();
-        renderizarTabela();
-        atualizarKPIs();
-        atualizarUIBloqueio();
-    });
-
-    function validarSenhaEdicao() {
-        if (editUnlocked) return true;
-        const senhaDigitada = prompt("🔒 Área Protegida! Digite a senha para liberar a edição:");
+    function validarSenhaEdicao(acao) {
+        const msg = acao ? `🔒 Área Protegida! Digite a senha Fiscal2026 para ${acao}:` : `🔒 Área Protegida! Digite a senha Fiscal2026 para realizar esta alteração:`;
+        const senhaDigitada = prompt(msg);
         if (senhaDigitada === EDIT_PASSWORD) {
-            editUnlocked = true;
-            atualizarUIBloqueio();
-            alert("✅ Edição liberada com sucesso!");
             return true;
-        } else if (senhaDigitada !== null) {
-            alert("❌ Senha incorreta! Apenas visualização permitida.");
+        } else {
+            if (senhaDigitada !== null) {
+                alert("❌ Senha incorreta! Alteração cancelada.");
+            }
+            return false;
         }
-        return false;
     }
+
 
     function toggleLockEdicao() {
         if (editUnlocked) {
@@ -2566,8 +2562,11 @@ function renderizarTabela() {
         const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
 
         const filtrados = empresas.filter(emp => {
-            // Linha fica verdinha quando Modelo, Devolução e Opção 2027 estão preenchidos
-            const isConcluido = !!(emp.modeloNegocio && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
+            const hasModelo = !!(emp.modeloNegocio && emp.modeloNegocio.trim() !== '');
+            const hasDevolucao = !!(emp.devolucao && emp.devolucao.trim() !== '' && emp.devolucao !== 'Sem análise');
+            const hasOpcao = !!(emp.opcao2027 && emp.opcao2027.trim() !== '');
+            const isConcluido = hasModelo && hasDevolucao && hasOpcao;
+
             const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
             const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
             const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
@@ -2592,7 +2591,11 @@ function renderizarTabela() {
             const tr = document.createElement('tr');
 
             // Regra da Linha Verdinha: Modelo + Devolução + Opção 2027 preenchidos
-            const isConcluido = !!(emp.modeloNegocio && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
+            const hasModelo = !!(emp.modeloNegocio && emp.modeloNegocio.trim() !== '');
+            const hasDevolucao = !!(emp.devolucao && emp.devolucao.trim() !== '' && emp.devolucao !== 'Sem análise');
+            const hasOpcao = !!(emp.opcao2027 && emp.opcao2027.trim() !== '');
+            const isConcluido = hasModelo && hasDevolucao && hasOpcao;
+
             if (isConcluido) {
                 tr.classList.add('row-concluida');
             }
