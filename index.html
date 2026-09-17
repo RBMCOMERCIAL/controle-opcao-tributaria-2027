@@ -549,10 +549,7 @@
             th, td { border: 1px solid #ccc; color: black !important; }
         }
     
-        tr.row-concluida {
-            background: rgba(16, 185, 129, 0.16) !important;
-            border-left: 5px solid #10b981 !important;
-        }
+        
         tr.row-concluida td {
             background: transparent !important;
         }
@@ -584,6 +581,18 @@
             color: #f87171 !important;
             border-color: rgba(239, 68, 68, 0.3) !important;
             font-weight: 600;
+        }
+
+
+        tr.row-concluida {
+            background: rgba(16, 185, 129, 0.22) !important;
+            border-left: 6px solid #10b981 !important;
+        }
+        tr.row-concluida td {
+            background: transparent !important;
+        }
+        tr.row-concluida:hover {
+            background: rgba(16, 185, 129, 0.32) !important;
         }
 
 </style>
@@ -2557,8 +2566,8 @@ function renderizarTabela() {
         const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
 
         const filtrados = empresas.filter(emp => {
-            // Linha fica verde quando Modelo, Enquadramento, Devolução e Opção 2027 estão preenchidos (Observação é opcional)
-            const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
+            // Linha fica verdinha quando Modelo, Devolução e Opção 2027 estão preenchidos
+            const isConcluido = !!(emp.modeloNegocio && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
             const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
             const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
             const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
@@ -2582,8 +2591,8 @@ function renderizarTabela() {
             const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
             const tr = document.createElement('tr');
 
-            // Regra da Linha Verde: Modelo, Enquadramento, Devolução e Opção 2027 preenchidos
-            const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
+            // Regra da Linha Verdinha: Modelo + Devolução + Opção 2027 preenchidos
+            const isConcluido = !!(emp.modeloNegocio && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
             if (isConcluido) {
                 tr.classList.add('row-concluida');
             }
