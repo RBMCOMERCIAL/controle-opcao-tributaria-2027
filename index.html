@@ -11,7 +11,24 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS para Excel import/export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    // EXECUÇÃO IMEDIATA E SÍNCRONA AO CARREGAR O SCRIPT
+    try {
+        carregarDados();
+    } catch(e) {
+        empresas = JSON.parse(JSON.stringify(dadosIniciais));
+        renderizarTabela();
+        atualizarKPIs();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarDados();
+    });
+
+    window.addEventListener('load', function() {
+        carregarDados();
+    });
+</script>
     <!-- Firebase Cloud Sync SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
