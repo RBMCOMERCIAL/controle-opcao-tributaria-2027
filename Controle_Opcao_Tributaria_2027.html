@@ -2420,9 +2420,12 @@
             try { historicoAlteracoes = JSON.parse(histSalvo); } catch(e){}
         }
 
-        if (salvos) {
+        if (salvos && salvos !== '[]' && salvos !== 'null') {
             try { 
                 empresas = JSON.parse(salvos); 
+                if (!Array.isArray(empresas) || empresas.length === 0) {
+                    empresas = JSON.parse(JSON.stringify(dadosIniciais));
+                }
             } catch (e) { 
                 empresas = JSON.parse(JSON.stringify(dadosIniciais)); 
             }
@@ -2430,8 +2433,9 @@
             empresas = JSON.parse(JSON.stringify(dadosIniciais));
         }
 
-        // Garantia absoluta de dados
+        // Garantia absoluta de dados (167 empresas)
         garantirEmpresasValidas();
+        salvarDados();
 
         // Conectar ao ouvinte da nuvem se disponível
         if (cloudDb) {
@@ -2445,8 +2449,9 @@
                     atualizarKPIs();
                     atualizarStatusNuvem(true);
                 } else if (!cloudData || (Array.isArray(cloudData) && cloudData.length === 0)) {
-                    // Se a nuvem estiver vazia, sincroniza dadosIniciais para a nuvem
+                    // Se a nuvem estiver vazia, envia as 167 empresas iniciais para a nuvem
                     cloudDb.ref('empresas').set(dadosIniciais);
+                    atualizarStatusNuvem(true);
                 }
             }, (error) => {
                 atualizarStatusNuvem(false);
