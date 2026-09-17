@@ -10,9 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- SheetJS CDN for Excel Export/Import -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Firebase SDK (Compat) para WebSockets em Tempo Real Instantâneo -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -497,7 +494,7 @@
     <!-- TOAST NOTIFICATION -->
     <div id="toastNotify">
         <span>💾</span>
-        <span id="toastMsg">Alterações salvas e transmitidas em tempo real para todos!</span>
+        <span id="toastMsg">Alterações salvas e transmitidas em tempo real!</span>
     </div>
 
     <!-- LOGIN MODAL (Appears on start if not logged in) -->
@@ -559,7 +556,7 @@
                 <p>
                     <span>RBM Contábil | Gestão & Planejamento Fiscal</span>
                     <span class="sync-indicator">
-                        <span class="sync-pulse"></span> Sincronizado Instantâneo (WebSockets / Nuvem)
+                        <span class="sync-pulse"></span> Sincronizado Instantâneo (Supabase Live)
                     </span>
                 </p>
             </div>
@@ -678,13 +675,15 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- JAVASCRIPT LOGIC WITH REALTIME SUPABASE CLOUD DATABASE -->
     <script>
         const SENHA_MESTRE = "Fiscal2026";
-        const LOCAL_STORAGE_KEY = "rbm_opcao_tributaria_2027_EXACT_HD";
-        const HISTORICO_KEY = "rbm_historico_alteracoes_2027";
-        const FIREBASE_URL = "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com/empresas.json";
-        const FIREBASE_HISTORICO_URL = "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com/historico.json";
+        const LOCAL_STORAGE_KEY = "rbm_opcao_tributaria_2027_LIVE_V3";
+        const HISTORICO_KEY = "rbm_historico_alteracoes_2027_LIVE_V3";
+
+        // SUPABASE REALTIME CLOUD DB ENDPOINTS (VIVIAN'S SYSTEM)
+        const SUPABASE_REST_URL = "https://kbnhbdurbaseadwmrflk.supabase.co/rest/v1/kickoffs";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtibmhiZHVyYmFzZWFkd21yZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMDU5MzIsImV4cCI6MjA5OTU4MTkzMn0.0tGgLHFuJc1S6aLyw3E7GgaKIkEQVsCep6S2aSLF2Xk";
 
         const dadosIniciais = [
         {
@@ -2197,52 +2196,6 @@
         let usuarioAtual = "";
         let isEditing = false;
 
-        // INICIALIZAÇÃO FIREBASE WEBSOCKET REALTIME
-        let dbRef = null;
-        let histRef = null;
-
-        try {
-            if (typeof firebase !== 'undefined') {
-                const firebaseConfig = {
-                    databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
-                };
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
-                }
-                const db = firebase.database();
-                dbRef = db.ref("empresas_live_v1");
-                histRef = db.ref("historico_live_v1");
-
-                // Listener WebSocket Instantâneo para receber alterações de qualquer usuário na hora
-                dbRef.on("value", (snapshot) => {
-                    const data = snapshot.val();
-                    if (data && Array.isArray(data) && data.length > 0) {
-                        const jsonStrLocal = JSON.stringify(empresas);
-                        const jsonStrCloud = JSON.stringify(data);
-
-                        if (jsonStrLocal !== jsonStrCloud) {
-                            empresas = data;
-                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
-                            if (!isEditing) {
-                                renderizarTabela();
-                                atualizarKPIs();
-                            }
-                        }
-                    }
-                });
-
-                histRef.on("value", (snapshot) => {
-                    const data = snapshot.val();
-                    if (data && Array.isArray(data)) {
-                        historicoLog = data;
-                        localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
-                    }
-                });
-            }
-        } catch(e) {
-            console.error("Firebase SDK Init error:", e);
-        }
-
         function exibirToast(msg) {
             const toast = document.getElementById("toastNotify");
             document.getElementById("toastMsg").textContent = msg;
@@ -2315,15 +2268,20 @@
             historicoLog.unshift(novoItem);
             localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
 
-            if (histRef) {
-                histRef.set(historicoLog);
-            } else {
-                fetch(FIREBASE_HISTORICO_URL + "?t=" + Date.now(), {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(historicoLog)
-                });
-            }
+            // Transmite histórico para Supabase
+            fetch(SUPABASE_REST_URL, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates"
+                },
+                body: JSON.stringify([{
+                    id: "opcao_tributaria_2027_historico",
+                    data: historicoLog
+                }])
+            }).catch(err => console.error("Erro histórico Supabase:", err));
         }
 
         function abrirHistorico() {
@@ -2354,37 +2312,17 @@
             document.getElementById("historicoModal").style.display = "none";
         }
 
-        // CARGA E SALVAMENTO DE DADOS
+        // CARGA E SALVAMENTO EM NUVEM SUPABASE
         function carregarDados() {
             checarSessao();
 
+            // Inicializa imediatamente com as empresas nativas
             empresas = JSON.parse(JSON.stringify(dadosIniciais));
-
-            const salvos = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (salvos) {
-                try {
-                    const listSalva = JSON.parse(salvos);
-                    if (Array.isArray(listSalva) && listSalva.length > 0) {
-                        const mapSalvos = new Map();
-                        listSalva.forEach(item => { if (item && item.cod) mapSalvos.set(item.cod, item); });
-                        empresas = empresas.map(emp => mapSalvos.get(emp.cod) || emp);
-                        listSalva.forEach(item => {
-                            if (item && item.cod && !empresas.some(e => e.cod === item.cod)) {
-                                empresas.push(item);
-                            }
-                        });
-                    }
-                } catch(e) {}
-            }
-
-            const histSalvo = localStorage.getItem(HISTORICO_KEY);
-            if (histSalvo) {
-                try { historicoLog = JSON.parse(histSalvo); } catch(e) {}
-            }
-
             renderizarTabela();
             atualizarKPIs();
-            sincronizarComNuvemSemCache();
+
+            // Busca primeiro da Nuvem Supabase para garantir sincronização entre todos os computadores
+            sincronizarComNuvemSupabase();
         }
 
         function salvarDados() {
@@ -2392,60 +2330,85 @@
             atualizarKPIs();
             renderizarTabela();
 
-            // Transmite instantaneamente para a nuvem Firebase via WebSocket / REST no-cache
-            if (dbRef) {
-                dbRef.set(empresas).catch(err => {
-                    fetch(FIREBASE_URL + "?t=" + Date.now(), {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        cache: "no-store",
-                        body: JSON.stringify(empresas)
-                    });
-                });
-            } else {
-                fetch(FIREBASE_URL + "?t=" + Date.now(), {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    cache: "no-store",
-                    body: JSON.stringify(empresas)
-                });
-            }
+            // Transmite IMEDIATAMENTE para a nuvem Supabase em tempo real para todos os computadores
+            fetch(SUPABASE_REST_URL, {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates"
+                },
+                body: JSON.stringify([{
+                    id: "opcao_tributaria_2027_live",
+                    data: empresas
+                }])
+            }).catch(err => console.error("Erro ao salvar no Supabase:", err));
         }
 
         function salvarManualmente() {
             if (!verificarAutenticado()) return;
 
             salvarDados();
-            registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização forçada enviada para todos os usuários");
-            exibirToast("✅ Alterações salvas com sucesso! Transmitido em tempo real para todos os usuários.");
+            registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização forçada enviada para todos os computadores");
+            exibirToast("✅ Alterações salvas com sucesso! Transmitido em tempo real para todos os computadores.");
         }
 
-        // BUSCA FORÇADA DA NUVEM (REST NO-CACHE FALLBACK)
-        function sincronizarComNuvemSemCache() {
-            if (isEditing) return;
+        // SINCRONIZAÇÃO EM TEMPO REAL SUPABASE (POLLING DE 1 SEGUNDO COM CACHE-BUSTING)
+        function sincronizarComNuvemSupabase() {
+            if (isEditing) return; // Não substitui se o usuário estiver editando no momento
 
-            fetch(FIREBASE_URL + "?t=" + Date.now(), { cache: "no-store" })
-                .then(res => res.json())
-                .then(cloudData => {
-                    if (Array.isArray(cloudData) && cloudData.length > 0) {
-                        const jsonStrLocal = JSON.stringify(empresas);
-                        const jsonStrCloud = JSON.stringify(cloudData);
+            const fetchUrl = SUPABASE_REST_URL + "?id=eq.opcao_tributaria_2027_live&_t=" + Date.now();
 
-                        if (jsonStrLocal !== jsonStrCloud) {
-                            empresas = cloudData;
-                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
-                            renderizarTabela();
-                            atualizarKPIs();
-                        }
-                    } else if (!cloudData && dbRef) {
-                        dbRef.set(empresas);
+            fetch(fetchUrl, {
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                    "Cache-Control": "no-cache"
+                }
+            })
+            .then(res => res.json())
+            .then(cloudRes => {
+                if (Array.isArray(cloudRes) && cloudRes.length > 0 && cloudRes[0].data) {
+                    const cloudData = cloudRes[0].data;
+                    const jsonStrLocal = JSON.stringify(empresas);
+                    const jsonStrCloud = JSON.stringify(cloudData);
+
+                    if (jsonStrLocal !== jsonStrCloud) {
+                        empresas = cloudData;
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
+                        renderizarTabela();
+                        atualizarKPIs();
                     }
-                })
-                .catch(err => console.log("Nuvem offline:", err));
+                }
+            })
+            .catch(err => console.log("Nuvem Supabase offline:", err));
+
+            // Sincroniza Histórico
+            fetch(SUPABASE_REST_URL + "?id=eq.opcao_tributaria_2027_historico&_t=" + Date.now(), {
+                headers: {
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                    "Cache-Control": "no-cache"
+                }
+            })
+            .then(res => res.json())
+            .then(histRes => {
+                if (Array.isArray(histRes) && histRes.length > 0 && histRes[0].data) {
+                    const cloudHist = histRes[0].data;
+                    const jsonHistLocal = JSON.stringify(historicoLog);
+                    const jsonHistCloud = JSON.stringify(cloudHist);
+                    if (jsonHistLocal !== jsonHistCloud) {
+                        historicoLog = cloudHist;
+                        localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+                    }
+                }
+            })
+            .catch(err => console.log("Histórico offline:", err));
         }
 
-        // Polling ultrarrápido fallback a cada 1.5s com no-cache
-        setInterval(sincronizarComNuvemSemCache, 1500);
+        // Polling ultrarrápido a cada 1 segundo (1000ms)
+        setInterval(sincronizarComNuvemSupabase, 1000);
 
         function renderizarTabela() {
             const buscaInput = document.getElementById("buscaInput").value;
