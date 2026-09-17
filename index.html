@@ -2393,6 +2393,25 @@
     }
 
     // Carregar e sincronizar dados com a Nuvem + LocalStorage
+    
+    function garantirEmpresasValidas() {
+        if (!empresas || !Array.isArray(empresas) || empresas.length === 0) {
+            empresas = JSON.parse(JSON.stringify(dadosIniciais));
+            salvarDados('Restauradas 167 empresas iniciais por garantia de segurança');
+        }
+    }
+
+    function restaurarDadosIniciaisComSenha() {
+        if (!validarSenhaEdicao('restaurar todas as 167 empresas originais')) return;
+        if (confirm("Deseja restaurar as 167 empresas originais do sistema?")) {
+            empresas = JSON.parse(JSON.stringify(dadosIniciais));
+            salvarDados('Restauradas 167 empresas iniciais manualmente');
+            renderizarTabela();
+            alert("✅ Todas as 167 empresas foram restauradas com sucesso!");
+        }
+    }
+
+
     function carregarDados() {
         const salvos = localStorage.getItem('rbm_opcao_tributaria_2027_EXACT_HD');
         const histSalvo = localStorage.getItem('rbm_historico_alteracoes');
@@ -2402,22 +2421,32 @@
         }
 
         if (salvos) {
-            try { empresas = JSON.parse(salvos); } catch (e) { empresas = [...dadosIniciais]; }
+            try { 
+                empresas = JSON.parse(salvos); 
+            } catch (e) { 
+                empresas = JSON.parse(JSON.stringify(dadosIniciais)); 
+            }
         } else {
-            empresas = [...dadosIniciais];
-            salvarDados();
+            empresas = JSON.parse(JSON.stringify(dadosIniciais));
         }
+
+        // Garantia absoluta de dados
+        garantirEmpresasValidas();
 
         // Conectar ao ouvinte da nuvem se disponível
         if (cloudDb) {
             cloudDb.ref('empresas').on('value', (snapshot) => {
                 const cloudData = snapshot.val();
-                if (cloudData && Array.isArray(cloudData)) {
+                if (cloudData && Array.isArray(cloudData) && cloudData.length > 0) {
                     empresas = cloudData;
+                    garantirEmpresasValidas();
                     localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
                     renderizarTabela();
                     atualizarKPIs();
                     atualizarStatusNuvem(true);
+                } else if (!cloudData || (Array.isArray(cloudData) && cloudData.length === 0)) {
+                    // Se a nuvem estiver vazia, sincroniza dadosIniciais para a nuvem
+                    cloudDb.ref('empresas').set(dadosIniciais);
                 }
             }, (error) => {
                 atualizarStatusNuvem(false);
@@ -2428,12 +2457,12 @@
                 if (histData && Array.isArray(histData)) {
                     historicoAlteracoes = histData;
                     localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
-                    renderizarHistoricoUI();
                 }
             });
-        } else {
-            atualizarStatusNuvem(false);
         }
+
+        renderizarTabela();
+        atualizarKPIs();
     }
 
     function salvarDados(logMensagem = "") {
@@ -2553,13 +2582,28 @@ function alterarDevolucao(index, valor) {
 }
 
 function renderizarTabela() {
+        garantirEmpresasValidas();
+
         const corpo = document.getElementById('tabelaCorpo');
-        const termoBusca = document.getElementById('searchFilter').value.toLowerCase();
-        const devolucaoFiltro = document.getElementById('devolucaoFilter') ? document.getElementById('devolucaoFilter').value : '';
-        const enqFiltro = document.getElementById('enquadramentoFilter').value;
-        const statusFiltro = document.getElementById('statusFilter').value;
-        const opcaoFiltro = document.getElementById('opcao2027Filter').value;
-        const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
+        if (!corpo) return;
+
+        const searchEl = document.getElementById('searchFilter');
+        const termoBusca = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+        const devolucaoEl = document.getElementById('devolucaoFilter');
+        const devolucaoFiltro = devolucaoEl ? devolucaoEl.value : '';
+
+        const enqEl = document.getElementById('enquadramentoFilter');
+        const enqFiltro = enqEl ? enqEl.value : '';
+
+        const statusEl = document.getElementById('statusFilter');
+        const statusFiltro = statusEl ? statusEl.value : '';
+
+        const opcaoEl = document.getElementById('opcao2027Filter');
+        const opcaoFiltro = opcaoEl ? opcaoEl.value : '';
+
+        const modeloEl = document.getElementById('modeloFilter');
+        const modeloFiltro = modeloEl ? modeloEl.value : '';
 
         const filtrados = empresas.filter(emp => {
             const hasModelo = !!(emp.modeloNegocio && emp.modeloNegocio.trim() !== '');
@@ -2567,7 +2611,7 @@ function renderizarTabela() {
             const hasOpcao = !!(emp.opcao2027 && emp.opcao2027.trim() !== '');
             const isConcluido = hasModelo && hasDevolucao && hasOpcao;
 
-            const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
+            const matchBusca = !termoBusca || (emp.empresa && emp.empresa.toLowerCase().includes(termoBusca)) || (emp.cod && emp.cod.toString().includes(termoBusca));
             const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
             const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
             const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? isConcluido : !isConcluido);
@@ -2577,7 +2621,10 @@ function renderizarTabela() {
             return matchBusca && matchDevolucao && matchEnq && matchStatus && matchOpcao && matchModelo;
         });
 
-        document.getElementById('registrosCount').innerText = `Mostrando ${filtrados.length} de ${empresas.length} empresas`;
+        const countEl = document.getElementById('registrosCount');
+        if (countEl) {
+            countEl.innerText = `Mostrando ${filtrados.length} de ${empresas.length} empresas`;
+        }
 
         corpo.innerHTML = '';
 
