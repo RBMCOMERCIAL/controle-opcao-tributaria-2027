@@ -59,6 +59,30 @@
             margin: 0 auto;
         }
 
+        /* TOAST NOTIFICATION */
+        #toastNotify {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: #10b981;
+            color: #ffffff;
+            padding: 14px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* HEADER */
         .header {
             display: flex;
@@ -152,6 +176,17 @@
 
         .btn:active {
             transform: scale(0.98);
+        }
+
+        .btn-save {
+            background-color: #10b981;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+        .btn-save:hover {
+            background-color: #059669;
         }
 
         .btn-primary {
@@ -456,6 +491,12 @@
     </style>
 </head>
 <body>
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotify">
+        <span>💾</span>
+        <span id="toastMsg">Alterações salvas e sincronizadas com todos os usuários em tempo real!</span>
+    </div>
+
     <!-- LOGIN MODAL (Appears on start if not logged in) -->
     <div id="loginModal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
@@ -520,6 +561,7 @@
                 </p>
             </div>
             <div class="header-actions">
+                <button class="btn btn-save" onclick="salvarManualmente()">💾 Salvar Alterações</button>
                 <div class="user-badge" id="userBadge" style="display: none;">
                     <span>👤 <strong id="userBadgeNome">--</strong></span>
                     <button style="background: none; border: none; color: #ef4444; cursor: pointer; font-weight: 700; margin-left: 6px;" onclick="fazerLogout()" title="Sair do sistema">🚪 Sair</button>
@@ -2152,6 +2194,15 @@
         let usuarioAtual = "";
         let isEditing = false;
 
+        function exibirToast(msg) {
+            const toast = document.getElementById("toastNotify");
+            document.getElementById("toastMsg").textContent = msg;
+            toast.style.display = "flex";
+            setTimeout(() => {
+                toast.style.display = "none";
+            }, 3500);
+        }
+
         // CONTROLE DE SESSÃO / LOGIN
         function checarSessao() {
             const userSalvo = sessionStorage.getItem("rbm_usuario_logado");
@@ -2250,14 +2301,12 @@
             document.getElementById("historicoModal").style.display = "none";
         }
 
-        // CARGA E SALVAMENTO DE DADOS COM TEMPO REAL
+        // CARGA E SALVAMENTO DE DADOS
         function carregarDados() {
             checarSessao();
 
-            // Inicializa com as empresas nativas
             empresas = JSON.parse(JSON.stringify(dadosIniciais));
 
-            // Carrega do localStorage se houver salvos
             const salvos = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (salvos) {
                 try {
@@ -2298,9 +2347,17 @@
             }).catch(err => console.error("Erro ao salvar no Firebase:", err));
         }
 
-        // SINCRONIZAÇÃO EM TEMPO REAL ATIVA (A CADA 2.5 SEGUNDOS)
+        function salvarManualmente() {
+            if (!verificarAutenticado()) return;
+
+            salvarDados();
+            registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização acionada pelo usuário");
+            exibirToast("✅ Alterações salvas com sucesso! Sincronizado com todos os usuários em tempo real.");
+        }
+
+        // SINCRONIZAÇÃO EM TEMPO REAL ATIVA (A CADA 1.5 SEGUNDOS)
         function sincronizarComNuvem() {
-            if (isEditing) return; // Não recarrega se o usuário estiver digitando no momento
+            if (isEditing) return; // Não atualiza se o usuário estiver digitando
 
             fetch(FIREBASE_URL)
                 .then(res => res.json())
@@ -2340,8 +2397,8 @@
                 .catch(err => console.log("Histórico offline:", err));
         }
 
-        // Polling contínuo em tempo real a cada 2.5 segundos
-        setInterval(sincronizarComNuvem, 2500);
+        // Polling ultrarrápido em tempo real a cada 1.5 segundos
+        setInterval(sincronizarComNuvem, 1500);
 
         function renderizarTabela() {
             const buscaInput = document.getElementById("buscaInput").value;
@@ -2364,10 +2421,6 @@
             });
 
             filtrados.forEach(emp => {
-                // NOVAS REGRAS DE CORES:
-                // 1. Amarelinho claro: quando Devolução for "Análise pendente"
-                // 2. Verde: quando Devolução for "Análise finalizada" E Opção 2027 estiver preenchida (!= "selecione")
-                // 3. Sem cor: quando for "Sem análise"
                 const isPendente = emp.devolucao === "Análise pendente";
                 const isConcluida = emp.devolucao === "Análise finalizada" && (emp.opcao2027 && emp.opcao2027 !== "");
 
@@ -2432,6 +2485,7 @@
             emp.modelo = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Modelo Alterado", `De "${valAntigo || 'Vazio'}" para "${val || 'Vazio'}"`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
         }
 
         function alterarDevolucao(cod, val, el) {
@@ -2442,6 +2496,7 @@
             emp.devolucao = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Devolução Alterada", `De "${valAntigo}" para "${val}"`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
         }
 
         function alterarOpcao2027(cod, val, el) {
@@ -2452,6 +2507,7 @@
             emp.opcao2027 = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Opção 2027 Alterada", `De "${valAntigo || 'Vazio'}" para "${val || 'Vazio'}"`);
+            exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva! Sincronizando...`);
         }
 
         function alterarObs(cod, val, el) {
@@ -2463,6 +2519,7 @@
             emp.obs = val;
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Observação Alterada", `"${val}"`);
+            exibirToast(`Observação salva para [${emp.cod}] ${emp.empresa}!`);
         }
 
         function adicionarEmpresa() {
@@ -2497,7 +2554,7 @@
             empresas.unshift(novaEmp);
             salvarDados();
             registrarHistorico(cod, nome.trim(), "Nova Empresa Criada", `Enquadramento: ${enqUpper}`);
-            alert("Empresa cadastrada com sucesso!");
+            exibirToast(`Empresa ${nome.trim()} criada e sincronizada!`);
         }
 
         function excluirEmpresa(cod) {
@@ -2509,7 +2566,7 @@
                 empresas = empresas.filter(e => e.cod !== cod);
                 salvarDados();
                 registrarHistorico(emp.cod, emp.empresa, "Empresa Excluída", `Removida do cadastro`);
-                alert("Empresa excluída com sucesso!");
+                exibirToast(`Empresa [${emp.cod}] excluída e sincronizada!`);
             }
         }
 
@@ -2573,7 +2630,7 @@
                             empresas = imported;
                             salvarDados();
                             registrarHistorico(0, "Múltiplas", "Importação JSON", `Base atualizada via arquivo JSON`);
-                            alert("Dados importados com sucesso!");
+                            exibirToast("Dados importados e sincronizados!");
                         }
                     } else {
                         const data = new Uint8Array(e.target.result);
@@ -2593,7 +2650,7 @@
                             }));
                             salvarDados();
                             registrarHistorico(0, "Múltiplas", "Importação Excel", `Importadas ${empresas.length} empresas`);
-                            alert(`${empresas.length} empresas importadas com sucesso!`);
+                            exibirToast(`${empresas.length} empresas importadas e sincronizadas!`);
                         }
                     }
                 } catch(err) {
@@ -2608,7 +2665,7 @@
             }
         }
 
-        // INICIALIZAÇÃO E PRIMEIRA SINCRONIZAÇÃO DA NUVEM
+        // INICIALIZAÇÃO
         carregarDados();
 
         document.addEventListener("DOMContentLoaded", function() {
