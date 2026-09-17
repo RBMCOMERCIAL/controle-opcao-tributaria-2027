@@ -2288,7 +2288,7 @@
         }
 
         // HISTÓRICO DE ALTERAÇÕES
-        function registrarHistorico(cod, empresa, acao, detalhe) {
+                function registrarHistorico(cod, empresa, acao, detalhe) {
             const novoItem = {
                 id: Date.now(),
                 timestamp: new Date().toLocaleString("pt-BR"),
@@ -2302,12 +2302,12 @@
             historicoLog.unshift(novoItem);
             localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
 
-            // Transmite histórico para Supabase
-            fetch(FIREBASE_LIVE_URL, {
+            // Transmite histórico para Firebase
+            fetch(FIREBASE_HIST_URL, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(empresas)
-            }).catch(err => console.error("Erro ao salvar no Firebase:", err));
+                body: JSON.stringify(historicoLog)
+            }).catch(err => console.error("Erro histórico Firebase:", err));
         }
 
         function salvarManualmente() {
@@ -2319,7 +2319,7 @@
         }
 
         // SINCRONIZAÇÃO EM TEMPO REAL SUPABASE (POLLING DE 1 SEGUNDO COM COMPARADOR DETERMINÍSTICO)
-        function sincronizarComNuvemSupabase() {
+                function sincronizarComNuvemSupabase() {
             if (isEditing) return; // Não substitui se o usuário estiver digitando
 
             fetch(FIREBASE_LIVE_URL + "?_t=" + Date.now(), { cache: "no-store" })
@@ -2335,6 +2335,10 @@
                             renderizarTabela();
                             atualizarKPIs();
                         }
+                    } else if (cloudData === null || (Array.isArray(cloudData) && cloudData.length === 0)) {
+                        // Se a nuvem estiver vazia, restaura automaticamente as 167 empresas nativas
+                        empresas = JSON.parse(JSON.stringify(dadosIniciais));
+                        salvarDados();
                     }
                 })
                 .catch(err => console.log("Nuvem Firebase offline:", err));
