@@ -624,9 +624,7 @@
             </button>
 
             
-            <button class="btn btn-outline" onclick="restaurarDadosIniciaisComSenha()" title="Restaurar lista original das 167 empresas" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
-                <i class="fa-solid fa-rotate-left"></i> Restaurar 167 Empresas
-            </button>
+            
             <button class="btn btn-outline" id="btnLock"
  onclick="toggleLockEdicao()" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
                 <i class="fa-solid fa-lock" id="lockIcon"></i> <span id="lockText">Edição Bloqueada</span>
@@ -2325,9 +2323,11 @@
         }
 ];
 
-    let empresas = [];
-    let editUnlocked = false;
     
+    let empresas = JSON.parse(JSON.stringify(dadosIniciais));
+    let editUnlocked = false;
+    let cloudDb = null;
+    let historicoAlteracoes = [];
     const EDIT_PASSWORD = "Fiscal2026";
 
     function validarSenhaEdicao(acao) {
@@ -2343,101 +2343,16 @@
         }
     }
 
-
     function toggleLockEdicao() {
-        if (editUnlocked) {
-            editUnlocked = false;
-            atualizarUIBloqueio();
-            alert("🔒 Edição bloqueada!");
-        } else {
-            validarSenhaEdicao();
-        }
+        if (!validarSenhaEdicao('desbloquear a edição')) return;
+        alert("🔓 Edição liberada para esta operação!");
     }
-
-    function atualizarUIBloqueio() {
-        const btn = document.getElementById('btnLock');
-        const icon = document.getElementById('lockIcon');
-        const text = document.getElementById('lockText');
-        
-        if (!btn || !icon || !text) return;
-
-        if (editUnlocked) {
-            btn.style.borderColor = "rgba(16, 185, 129, 0.4)";
-            btn.style.color = "#34d399";
-            icon.className = "fa-solid fa-lock-open";
-            text.innerText = "Edição Liberada";
-        } else {
-            btn.style.borderColor = "rgba(245, 158, 11, 0.4)";
-            btn.style.color = "#fbbf24";
-            icon.className = "fa-solid fa-lock";
-            text.innerText = "Edição Bloqueada";
-        }
-    }
-
-    // Carregamento de dados com suporte anti-perda (localStorage)
-    
-    // ==========================================
-    // CONFIGURAÇÃO DA NUVEM (FIREBASE REALTIME DB)
-    // ==========================================
-    // Banco de dados em nuvem em tempo real compartilhado para toda a equipe RBM
-    const firebaseConfig = {
-        databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
-    };
-
-    let cloudDb = null;
-    let historicoAlteracoes = [];
-
-    // Inicializar Firebase em modo seguro com fallback local
-    try {
-        if (typeof firebase !== 'undefined') {
-            firebase.initializeApp(firebaseConfig);
-            cloudDb = firebase.database();
-        }
-    } catch(err) {
-        console.log("Modo offline ativo.");
-    }
-
-    // Carregar e sincronizar dados com a Nuvem + LocalStorage
-    
-    
-    function normalizarParaArray(data) {
-        if (!data) return [];
-        if (Array.isArray(data)) return data;
-        if (typeof data === 'object') {
-            return Object.values(data);
-        }
-        return [];
-    }
-
-    function garantir167Empresas() {
-        if (!empresas || !Array.isArray(empresas)) {
-            empresas = JSON.parse(JSON.stringify(dadosIniciais));
-        } else {
-            const codsExistentes = new Set(empresas.map(e => e.cod));
-            dadosIniciais.forEach(d => {
-                if (!codsExistentes.has(d.cod)) {
-                    empresas.push(JSON.parse(JSON.stringify(d)));
-                }
-            });
-            empresas.sort((a, b) => a.cod - b.cod);
-        }
-        try {
-            localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
-        } catch(e){}
-    }
-
-    function restaurarDadosIniciaisComSenha() {
-        if (!validarSenhaEdicao('restaurar todas as 167 empresas originais')) return;
-        if (confirm("Deseja restaurar as 167 empresas originais do sistema?")) {
-            empresas = JSON.parse(JSON.stringify(dadosIniciais));
-            salvarDados('Restauradas 167 empresas iniciais manualmente');
-            renderizarTabela();
-            alert("✅ Todas as 167 empresas foram restauradas com sucesso!");
-        }
-    }
-
 
     function carregarDados() {
+        // Inicializa SEMPRE com todas as 167 empresas nativas
+        empresas = JSON.parse(JSON.stringify(dadosIniciais));
+
+        // Mesclar alterações salvas localmente
         const salvos = localStorage.getItem('rbm_opcao_tributaria_2027_EXACT_HD');
         const histSalvo = localStorage.getItem('rbm_historico_alteracoes');
         
@@ -2447,83 +2362,106 @@
 
         if (salvos) {
             try { 
-                const parsed = JSON.parse(salvos);
-                empresas = normalizarParaArray(parsed);
-            } catch (e) { 
-                empresas = JSON.parse(JSON.stringify(dadosIniciais)); 
-            }
-        } else {
-            empresas = JSON.parse(JSON.stringify(dadosIniciais));
+                const listSalva = JSON.parse(salvos);
+                if (Array.isArray(listSalva) && listSalva.length > 0) {
+                    const mapSalvos = new Map();
+                    listSalva.forEach(item => { if (item && item.cod) mapSalvos.set(item.cod, item); });
+
+                    empresas.forEach(emp => {
+                        const s = mapSalvos.get(emp.cod);
+                        if (s) {
+                            if (s.modeloNegocio) emp.modeloNegocio = s.modeloNegocio;
+                            if (s.devolucao) emp.devolucao = s.devolucao;
+                            if (s.opcao2027) emp.opcao2027 = s.opcao2027;
+                            if (s.obs) emp.obs = s.obs;
+                            if (typeof s.levantamento !== 'undefined') emp.levantamento = s.levantamento;
+                        }
+                    });
+
+                    // Se houver novas empresas adicionadas manualmente
+                    listSalva.forEach(s => {
+                        if (s && s.cod && !empresas.some(e => e.cod === s.cod)) {
+                            empresas.push(s);
+                        }
+                    });
+                }
+            } catch (e) {}
         }
 
-        // GARANTIA DE 167 EMPRESAS
-        garantir167Empresas();
-
-        // Conectar ao Firebase Cloud
-        if (cloudDb) {
-            cloudDb.ref('empresas').on('value', (snapshot) => {
-                const cloudRaw = snapshot.val();
-                const cloudList = normalizarParaArray(cloudRaw);
-                
-                if (cloudList && cloudList.length > 0) {
-                    empresas = cloudList;
-                    garantir167Empresas();
-                    renderizarTabela();
-                    atualizarKPIs();
-                    atualizarStatusNuvem(true);
-                } else {
-                    // Se a nuvem estiver vazia, sincroniza todas as 167 empresas para a nuvem
-                    cloudDb.ref('empresas').set(dadosIniciais);
-                    empresas = JSON.parse(JSON.stringify(dadosIniciais));
-                    renderizarTabela();
-                    atualizarKPIs();
-                    atualizarStatusNuvem(true);
-                }
-            }, (error) => {
-                atualizarStatusNuvem(false);
-            });
-
-            cloudDb.ref('historico').on('value', (snapshot) => {
-                const histData = snapshot.val();
-                const histList = normalizarParaArray(histData);
-                if (histList && histList.length > 0) {
-                    historicoAlteracoes = histList;
-                    localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
-                }
-            });
-        }
-
+        // Renderiza imediatamente na tela
         renderizarTabela();
         atualizarKPIs();
+
+        // Conectar ao Firebase Cloud de forma não-bloqueante (apenas para sincronizar edições)
+        try {
+            if (typeof firebase !== 'undefined' && firebaseConfig) {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                cloudDb = firebase.database();
+
+                cloudDb.ref('empresas').on('value', (snapshot) => {
+                    const cloudRaw = snapshot.val();
+                    if (cloudRaw) {
+                        let cloudList = [];
+                        if (Array.isArray(cloudRaw)) cloudList = cloudRaw;
+                        else if (typeof cloudRaw === 'object') cloudList = Object.values(cloudRaw);
+
+                        if (cloudList.length > 0) {
+                            const mapCloud = new Map();
+                            cloudList.forEach(item => { if (item && item.cod) mapCloud.set(item.cod, item); });
+
+                            empresas.forEach(emp => {
+                                const c = mapCloud.get(emp.cod);
+                                if (c) {
+                                    if (c.modeloNegocio) emp.modeloNegocio = c.modeloNegocio;
+                                    if (c.devolucao) emp.devolucao = c.devolucao;
+                                    if (c.opcao2027) emp.opcao2027 = c.opcao2027;
+                                    if (c.obs) emp.obs = c.obs;
+                                    if (typeof c.levantamento !== 'undefined') emp.levantamento = c.levantamento;
+                                }
+                            });
+
+                            localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+                            renderizarTabela();
+                            atualizarKPIs();
+                            atualizarStatusNuvem(true);
+                        }
+                    }
+                }, (error) => {
+                    atualizarStatusNuvem(false);
+                });
+            }
+        } catch(err) {
+            atualizarStatusNuvem(false);
+        }
     }
 
     function salvarDados(logMensagem = "") {
-        // 1. Salvar no LocalStorage + Backup de Segurança Duplo
-        localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
-        localStorage.setItem('rbm_backup_emergencia', JSON.stringify(empresas));
+        try {
+            localStorage.setItem('rbm_opcao_tributaria_2027_EXACT_HD', JSON.stringify(empresas));
+        } catch(e){}
 
-        // 2. Registrar log de alteração com data/hora
         if (logMensagem) {
             const dataHora = new Date().toLocaleString('pt-BR');
-            historicoAlteracoes.unshift({
-                dataHora: dataHora,
-                mensagem: logMensagem
-            });
-            if (historicoAlteracoes.length > 200) historicoAlteracoes.pop();
-            localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
-            renderizarHistoricoUI();
+            historicoAlteracoes.unshift({ data: dataHora, usuario: 'Fiscal', acao: logMensagem });
+            if (historicoAlteracoes.length > 100) historicoAlteracoes.pop();
+            try {
+                localStorage.setItem('rbm_historico_alteracoes', JSON.stringify(historicoAlteracoes));
+            } catch(e){}
         }
 
-        // 3. Salvar na Nuvem Compartilhada
         if (cloudDb) {
-            cloudDb.ref('empresas').set(empresas);
-            if (logMensagem) {
-                cloudDb.ref('historico').set(historicoAlteracoes);
+            try {
+                cloudDb.ref('empresas').set(empresas);
+                if (logMensagem) cloudDb.ref('historico').set(historicoAlteracoes);
+                atualizarStatusNuvem(true);
+            } catch(e) {
+                atualizarStatusNuvem(false);
             }
         }
-        
-        atualizarKPIs();
     }
+
 
     function atualizarStatusNuvem(online) {
         const badge = document.getElementById('cloudStatusBadge');
