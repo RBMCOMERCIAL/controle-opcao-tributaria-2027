@@ -329,7 +329,6 @@
                 <button class="btn btn-secondary" onclick="exportarExcel()">📊 Exportar Excel</button>
                 <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">📥 Importar Excel</button>
                 <input type="file" id="fileInput" style="display:none;" accept=".xlsx, .xls, .json" onchange="importarExcel(event)">
-                <button class="btn btn-outline" onclick="restaurarBase()">🔄 Restaurar 167 Empresas</button>
             </div>
         </div>
 
@@ -2057,9 +2056,15 @@
             });
 
             filtrados.forEach(emp => {
-                const isConcluida = (emp.modelo && emp.modelo !== "") && 
-                                    (emp.devolucao && emp.devolucao !== "") && 
-                                    (emp.opcao2027 && emp.opcao2027 !== "");
+                // REGRA DA LINHA VERDE:
+                // 1. Modelo deve ser preenchido (não pode ser vazio/selecione)
+                // 2. Devolução deve ser preenchida E NÃO pode ser "Sem análise"
+                // 3. Opção 2027 deve ser preenchida (não pode ser vazia/selecione)
+                const isModeloPreenchido = emp.modelo && emp.modelo !== "";
+                const isDevolucaoValida = emp.devolucao && emp.devolucao !== "" && emp.devolucao !== "Sem análise";
+                const isOpcaoValida = emp.opcao2027 && emp.opcao2027 !== "";
+
+                const isConcluida = isModeloPreenchido && isDevolucaoValida && isOpcaoValida;
 
                 const tr = document.createElement("tr");
                 if (isConcluida) {
@@ -2200,15 +2205,6 @@
             }
         }
 
-        function restaurarBase() {
-            if (!validarSenhaEdicao()) return;
-            if (confirm("Deseja realmente restaurar a base original de 167 empresas? Alterações locais não salvas serão sobrescritas.")) {
-                empresas = JSON.parse(JSON.stringify(dadosIniciais));
-                salvarDados();
-                alert("Base de dados restaurada com sucesso!");
-            }
-        }
-
         function atualizarKPIs() {
             document.getElementById("kpiTotal").textContent = empresas.length;
 
@@ -2218,7 +2214,7 @@
             const lr = empresas.filter(e => e.opcao2027 === "Lucro real").length;
             
             const concluidas = empresas.filter(e => (e.modelo && e.modelo !== "") && 
-                                                   (e.devolucao && e.devolucao !== "") && 
+                                                   (e.devolucao && e.devolucao !== "" && e.devolucao !== "Sem análise") && 
                                                    (e.opcao2027 && e.opcao2027 !== "")).length;
             const pendentes = empresas.length - concluidas;
 
