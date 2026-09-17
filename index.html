@@ -430,6 +430,14 @@
         .select-opcao.presumido { border-color: #f59e0b; color: #fbbf24; background: rgba(245, 158, 11, 0.1); }
         .select-opcao.real { border-color: #ec4899; color: #f472b6; background: rgba(236, 72, 153, 0.1); }
         .select-opcao.b2b { border-color: #0284c7; color: #38bdf8; background: rgba(2, 132, 199, 0.12); }
+        
+        .select-opcao.b2b2c {
+            background: rgba(6, 182, 212, 0.18) !important;
+            color: #06b6d4 !important;
+            border-color: rgba(6, 182, 212, 0.3) !important;
+            font-weight: 600;
+        }
+
         .select-opcao.b2c { border-color: #10b981; color: #34d399; background: rgba(16, 185, 129, 0.12); }
 
 
@@ -639,6 +647,7 @@
                     <option value="">Todos os Modelos</option>
                     <option value="B2B">B2B (Empresas)</option>
                     <option value="B2C">B2C (Consumidor Final)</option>
+                    <option value="B2B / B2C">B2B / B2C (Ambos)</option>
                     <option value="Pendente">Não Definido</option>
                 </select>
             </div>
@@ -2545,10 +2554,11 @@ function renderizarTabela() {
                 <td><strong>#${emp.cod}</strong></td>
                 <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
                 <td>
-                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : '')}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 120px;">
+                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : (emp.modeloNegocio === 'B2B / B2C' ? 'b2b2c' : ''))}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 135px;">
                         <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
                         <option value="B2B" ${emp.modeloNegocio === 'B2B' ? 'selected' : ''}>B2B</option>
                         <option value="B2C" ${emp.modeloNegocio === 'B2C' ? 'selected' : ''}>B2C</option>
+                        <option value="B2B / B2C" ${emp.modeloNegocio === 'B2B / B2C' ? 'selected' : ''}>B2B / B2C (Ambos)</option>
                     </select>
                 </td>
                 <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
@@ -2596,49 +2606,54 @@ function renderizarTabela() {
     }
 
     
+    
     function alterarModeloNegocio(index, valor) {
-        if (!validarSenhaEdicao()) return;
+        if (!validarSenhaEdicao()) {
+            renderizarTabela();
+            return;
+        }
         empresas[index].modeloNegocio = valor;
         const emp = empresas[index];
-        salvarDados(`[${'Fiscal'}] alterou Modelo para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
+        salvarDados(`[Fiscal] alterou Modelo para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
         renderizarTabela();
     }
 
-function alterarOpcao2027(index, valor) {
-        if (!validarSenhaEdicao()) return;
+    function alterarOpcao2027(index, valor) {
+        if (!validarSenhaEdicao()) {
+            renderizarTabela();
+            return;
+        }
         empresas[index].opcao2027 = valor;
         if (valor && !empresas[index].levantamento) {
             empresas[index].levantamento = true;
         }
         const emp = empresas[index];
-        salvarDados(`[${'Fiscal'}] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
+        salvarDados(`[Fiscal] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
         renderizarTabela();
     }
 
-    
-    function alterarNomeEmpresa(index, valor) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].empresa = valor;
-        salvarDados();
-    }
-function alterarObs(index, valor) {
-        if (!validarSenhaEdicao()) return;
+    function alterarObs(index, valor) {
+        if (!validarSenhaEdicao()) {
+            renderizarTabela();
+            return;
+        }
         empresas[index].obs = valor;
-        salvarDados();
+        const emp = empresas[index];
+        salvarDados(`[Fiscal] alterou Observação para "${valor}" na empresa #${emp.cod} (${emp.empresa})`);
     }
 
-    
-
-function alterarDevolucao(index, valor) {
-    verificarSenha(() => {
+    function alterarDevolucao(index, valor) {
+        if (!validarSenhaEdicao()) {
+            renderizarTabela();
+            return;
+        }
         const cod = empresas[index].cod;
         empresas[index].devolucao = valor;
         salvarDados(`Alterou Devolução da empresa #${cod} (${empresas[index].empresa}) para "${valor}"`);
         renderizarTabela();
-    }, 'editar devolução');
-}
+    }
 
-function renderizarTabela() {
+    function renderizarTabela() {
         const corpo = document.getElementById('tabelaCorpo');
         const termoBusca = document.getElementById('searchFilter').value.toLowerCase();
         const devolucaoFiltro = document.getElementById('devolucaoFilter') ? document.getElementById('devolucaoFilter').value : '';
@@ -2682,10 +2697,11 @@ function renderizarTabela() {
                 <td><strong>#${emp.cod}</strong></td>
                 <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
                 <td>
-                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : '')}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 120px;">
+                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : (emp.modeloNegocio === 'B2B / B2C' ? 'b2b2c' : ''))}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 135px;">
                         <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
                         <option value="B2B" ${emp.modeloNegocio === 'B2B' ? 'selected' : ''}>B2B</option>
                         <option value="B2C" ${emp.modeloNegocio === 'B2C' ? 'selected' : ''}>B2C</option>
+                        <option value="B2B / B2C" ${emp.modeloNegocio === 'B2B / B2C' ? 'selected' : ''}>B2B / B2C (Ambos)</option>
                     </select>
                 </td>
                 <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
