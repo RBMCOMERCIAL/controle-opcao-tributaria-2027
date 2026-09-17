@@ -2303,81 +2303,11 @@
             localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
 
             // Transmite histórico para Supabase
-            fetch(SUPABASE_REST_URL, {
-                method: "POST",
-                headers: {
-                    "apikey": SUPABASE_ANON_KEY,
-                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "resolution=merge-duplicates"
-                },
-                body: JSON.stringify([{
-                    id: "opcao_tributaria_2027_historico",
-                    data: historicoLog
-                }])
-            }).catch(err => console.error("Erro histórico Supabase:", err));
-        }
-
-        function abrirHistorico() {
-            const tbody = document.getElementById("historicoCorpo");
-            tbody.innerHTML = "";
-
-            if (historicoLog.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhuma alteração registrada ainda.</td></tr>`;
-            } else {
-                historicoLog.forEach(item => {
-                    const tr = document.createElement("tr");
-                    tr.style.borderBottom = "1px solid var(--border-color)";
-                    tr.innerHTML = `
-                        <td style="padding: 10px; white-space: nowrap; color: var(--text-secondary);">${item.timestamp}</td>
-                        <td style="padding: 10px; font-weight: 700; color: var(--accent-blue);">${item.usuario}</td>
-                        <td style="padding: 10px;"><strong>[${item.cod}]</strong> ${item.empresa}</td>
-                        <td style="padding: 10px; font-weight: 600;">${item.acao}</td>
-                        <td style="padding: 10px; color: var(--text-secondary);">${item.detalhe}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            document.getElementById("historicoModal").style.display = "flex";
-        }
-
-        function fecharHistorico() {
-            document.getElementById("historicoModal").style.display = "none";
-        }
-
-        // CARGA E SALVAMENTO EM NUVEM SUPABASE
-        function carregarDados() {
-            checarSessao();
-
-            // Inicializa imediatamente com as empresas nativas
-            empresas = JSON.parse(JSON.stringify(dadosIniciais));
-            renderizarTabela();
-            atualizarKPIs();
-
-            // Busca primeiro da Nuvem Supabase para garantir sincronização entre todos os computadores
-            sincronizarComNuvemSupabase();
-        }
-
-        function salvarDados() {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
-            atualizarKPIs();
-            renderizarTabela();
-
-            // Transmite IMEDIATAMENTE para a nuvem Supabase em tempo real para todos os computadores
-            fetch(SUPABASE_REST_URL, {
-                method: "POST",
-                headers: {
-                    "apikey": SUPABASE_ANON_KEY,
-                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-                    "Content-Type": "application/json",
-                    "Prefer": "resolution=merge-duplicates"
-                },
-                body: JSON.stringify([{
-                    id: "opcao_tributaria_2027_live",
-                    data: empresas
-                }])
-            }).catch(err => console.error("Erro ao salvar no Supabase:", err));
+            fetch(FIREBASE_LIVE_URL, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(empresas)
+            }).catch(err => console.error("Erro ao salvar no Firebase:", err));
         }
 
         function salvarManualmente() {
@@ -2390,55 +2320,39 @@
 
         // SINCRONIZAÇÃO EM TEMPO REAL SUPABASE (POLLING DE 1 SEGUNDO COM COMPARADOR DETERMINÍSTICO)
         function sincronizarComNuvemSupabase() {
-            if (isEditing) return; // Não substitui se o usuário estiver digitando no momento
+            if (isEditing) return; // Não substitui se o usuário estiver digitando
 
-            const fetchUrl = SUPABASE_REST_URL + "?id=eq.opcao_tributaria_2027_live&_t=" + Date.now();
+            fetch(FIREBASE_LIVE_URL + "?_t=" + Date.now(), { cache: "no-store" })
+                .then(res => res.json())
+                .then(cloudData => {
+                    if (Array.isArray(cloudData) && cloudData.length > 0) {
+                        const normLocal = normalizarEmpresas(empresas);
+                        const normCloud = normalizarEmpresas(cloudData);
 
-            fetch(fetchUrl, {
-                headers: {
-                    "apikey": SUPABASE_ANON_KEY,
-                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-                    "Cache-Control": "no-cache"
-                }
-            })
-            .then(res => res.json())
-            .then(cloudRes => {
-                if (Array.isArray(cloudRes) && cloudRes.length > 0 && cloudRes[0].data) {
-                    const cloudData = cloudRes[0].data;
-                    const normLocal = normalizarEmpresas(empresas);
-                    const normCloud = normalizarEmpresas(cloudData);
-
-                    if (normLocal !== normCloud) {
-                        empresas = cloudData;
-                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
-                        renderizarTabela();
-                        atualizarKPIs();
+                        if (normLocal !== normCloud) {
+                            empresas = cloudData;
+                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
+                            renderizarTabela();
+                            atualizarKPIs();
+                        }
                     }
-                }
-            })
-            .catch(err => console.log("Nuvem Supabase offline:", err));
+                })
+                .catch(err => console.log("Nuvem Firebase offline:", err));
 
             // Sincroniza Histórico
-            fetch(SUPABASE_REST_URL + "?id=eq.opcao_tributaria_2027_historico&_t=" + Date.now(), {
-                headers: {
-                    "apikey": SUPABASE_ANON_KEY,
-                    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-                    "Cache-Control": "no-cache"
-                }
-            })
-            .then(res => res.json())
-            .then(histRes => {
-                if (Array.isArray(histRes) && histRes.length > 0 && histRes[0].data) {
-                    const cloudHist = histRes[0].data;
-                    const normHistLocal = normalizarHistorico(historicoLog);
-                    const normHistCloud = normalizarHistorico(cloudHist);
-                    if (normHistLocal !== normHistCloud) {
-                        historicoLog = cloudHist;
-                        localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+            fetch(FIREBASE_HIST_URL + "?_t=" + Date.now(), { cache: "no-store" })
+                .then(res => res.json())
+                .then(cloudHist => {
+                    if (Array.isArray(cloudHist)) {
+                        const normHistLocal = normalizarHistorico(historicoLog);
+                        const normHistCloud = normalizarHistorico(cloudHist);
+                        if (normHistLocal !== normHistCloud) {
+                            historicoLog = cloudHist;
+                            localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
+                        }
                     }
-                }
-            })
-            .catch(err => console.log("Histórico offline:", err));
+                })
+                .catch(err => console.log("Histórico Firebase offline:", err));
         }
 
         // Polling ultrarrápido a cada 1 segundo (1000ms)
