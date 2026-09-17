@@ -548,7 +548,19 @@
             table { width: 100%; border: 1px solid #ccc; }
             th, td { border: 1px solid #ccc; color: black !important; }
         }
-    </style>
+    
+        tr.row-concluida {
+            background: rgba(16, 185, 129, 0.16) !important;
+            border-left: 5px solid #10b981 !important;
+        }
+        tr.row-concluida td {
+            background: transparent !important;
+        }
+        tr.row-concluida:hover {
+            background: rgba(16, 185, 129, 0.25) !important;
+        }
+
+</style>
 </head>
 <body>
 
@@ -707,11 +719,10 @@
                     <tr>
                         <th style="width: 80px;">CÓD</th>
                         <th>NOME DA EMPRESA</th>
-                        <th style="width: 140px;">MODELO (B2B/B2C)</th>
                         <th style="width: 160px;">ENQUADRAMENTO 2026</th>
-                        <th style="width: 140px; text-align: center;">LEVANTAMENTO</th>
-                        <th style="width: 220px;">OPÇÃO 2027</th>
-                        <th style="width: 175px;">DEVOLUÇÃO</th>
+                        <th style="width: 155px;">MODELO (B2B/B2C)</th>
+                        <th style="width: 180px;">DEVOLUÇÃO</th>
+                        <th style="width: 200px;">OPÇÃO 2027</th>
                         <th>OBSERVAÇÃO</th>
                         <th style="width: 60px; text-align: center;">AÇÕES</th>
                     </tr>
@@ -2517,14 +2528,15 @@ function renderizarTabela() {
         const enqFiltro = document.getElementById('enquadramentoFilter').value;
         const statusFiltro = document.getElementById('statusFilter').value;
         const opcaoFiltro = document.getElementById('opcao2027Filter').value;
+        const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
 
         const filtrados = empresas.filter(emp => {
+            const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
             const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
             const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
             const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
-            const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? emp.levantamento : !emp.levantamento);
+            const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? isConcluido : !isConcluido);
             const matchOpcao = !opcaoFiltro || (opcaoFiltro === 'Pendente' ? !emp.opcao2027 : emp.opcao2027 === opcaoFiltro);
-            const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
             const matchModelo = !modeloFiltro || (modeloFiltro === 'Pendente' ? !emp.modeloNegocio : emp.modeloNegocio === modeloFiltro);
 
             return matchBusca && matchDevolucao && matchEnq && matchStatus && matchOpcao && matchModelo;
@@ -2543,16 +2555,23 @@ function renderizarTabela() {
             const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
             const tr = document.createElement('tr');
 
-            // Classe para estilo da opção selecionada
+            const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
+            if (isConcluido) {
+                tr.classList.add('row-concluida');
+            }
+
             let classeOpcao = '';
             if (emp.opcao2027 === 'Híbrida') classeOpcao = 'hibrida';
             else if (emp.opcao2027 === 'Tradicional') classeOpcao = 'tradicional';
             else if (emp.opcao2027 === 'Lucro Presumido') classeOpcao = 'presumido';
             else if (emp.opcao2027 === 'Lucro Real') classeOpcao = 'real';
 
+            const devolucaoActual = emp.devolucao || 'Sem análise';
+
             tr.innerHTML = `
                 <td><strong>#${emp.cod}</strong></td>
                 <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
+                <td><span class="badge badge-${emp.enquadramento ? emp.enquadramento.toLowerCase() : 'sn'}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
                 <td>
                     <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : (emp.modeloNegocio === 'B2B / B2C' ? 'b2b2c' : ''))}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 135px;">
                         <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
@@ -2561,11 +2580,14 @@ function renderizarTabela() {
                         <option value="B2B / B2C" ${emp.modeloNegocio === 'B2B / B2C' ? 'selected' : ''}>B2B / B2C (Ambos)</option>
                     </select>
                 </td>
-                <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
-                <td style="text-align: center;">
-                    <div class="check-status ${emp.levantamento ? 'done' : 'pending'}" onclick="toggleLevantamento(${indexOriginal})" title="Clique para alterar status">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
+                <td>
+                    <select class="select-opcao" style="${getDevolucaoBadgeStyle(devolucaoActual)}" onchange="alterarDevolucao(${indexOriginal}, this.value)">
+                        <option value="Sem análise" ${devolucaoActual === 'Sem análise' ? 'selected' : ''}>Sem análise</option>
+                        <option value="Análise pendente" ${devolucaoActual === 'Análise pendente' ? 'selected' : ''}>Análise pendente</option>
+                        <option value="Análise solicitada" ${devolucaoActual === 'Análise solicitada' ? 'selected' : ''}>Análise solicitada</option>
+                        <option value="Análise finalizada" ${devolucaoActual === 'Análise finalizada' ? 'selected' : ''}>Análise finalizada</option>
+                        <option value="Não se aplica" ${devolucaoActual === 'Não se aplica' ? 'selected' : ''}>Não se aplica</option>
+                    </select>
                 </td>
                 <td>
                     <select class="select-opcao ${classeOpcao}" onchange="alterarOpcao2027(${indexOriginal}, this.value)">
@@ -2577,233 +2599,18 @@ function renderizarTabela() {
                     </select>
                 </td>
                 <td>
-                    <select class="select-opcao" style="${getDevolucaoBadgeStyle(emp.devolucao)}" onchange="alterarDevolucao(${indexOriginal}, this.value)">
-                        <option value="Sem análise" ${(!emp.devolucao || emp.devolucao === 'Sem análise') ? 'selected' : ''}>Sem análise</option>
-                        <option value="Análise pendente" ${emp.devolucao === 'Análise pendente' ? 'selected' : ''}>Análise pendente</option>
-                        <option value="Análise solicitada" ${emp.devolucao === 'Análise solicitada' ? 'selected' : ''}>Análise solicitada</option>
-                        <option value="Análise finalizada" ${emp.devolucao === 'Análise finalizada' ? 'selected' : ''}>Análise finalizada</option>
-                        <option value="Não se aplica" ${emp.devolucao === 'Não se aplica' ? 'selected' : ''}>Não se aplica</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Inserir observação..." onchange="alterarObs(${indexOriginal}, this.value)">
+                    <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Observação..." onchange="alterarObs(${indexOriginal}, this.value)">
                 </td>
                 <td style="text-align: center;">
-                    <button class="btn-icon" onclick="excluirEmpresa(${indexOriginal})" title="Excluir Empresa"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="action-btn delete" onclick="excluirEmpresa(${indexOriginal})" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                 </td>
             `;
             corpo.appendChild(tr);
         });
+
+        atualizarKPIs();
     }
 
-    function toggleLevantamento(index) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].levantamento = !empresas[index].levantamento;
-        const emp = empresas[index];
-        const statusText = emp.levantamento ? "marcou como CONCLUÍDO (✔️)" : "marcou como PENDENTE";
-        salvarDados(`[${'Fiscal'}] ${statusText} a empresa #${emp.cod} (${emp.empresa})`);
-        renderizarTabela();
-    }
-
-    
-    
-    function alterarModeloNegocio(index, valor) {
-        if (!validarSenhaEdicao()) {
-            renderizarTabela();
-            return;
-        }
-        empresas[index].modeloNegocio = valor;
-        const emp = empresas[index];
-        salvarDados(`[Fiscal] alterou Modelo para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
-        renderizarTabela();
-    }
-
-    function alterarOpcao2027(index, valor) {
-        if (!validarSenhaEdicao()) {
-            renderizarTabela();
-            return;
-        }
-        empresas[index].opcao2027 = valor;
-        if (valor && !empresas[index].levantamento) {
-            empresas[index].levantamento = true;
-        }
-        const emp = empresas[index];
-        salvarDados(`[Fiscal] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
-        renderizarTabela();
-    }
-
-    function alterarObs(index, valor) {
-        if (!validarSenhaEdicao()) {
-            renderizarTabela();
-            return;
-        }
-        empresas[index].obs = valor;
-        const emp = empresas[index];
-        salvarDados(`[Fiscal] alterou Observação para "${valor}" na empresa #${emp.cod} (${emp.empresa})`);
-    }
-
-    function alterarDevolucao(index, valor) {
-        if (!validarSenhaEdicao()) {
-            renderizarTabela();
-            return;
-        }
-        const cod = empresas[index].cod;
-        empresas[index].devolucao = valor;
-        salvarDados(`Alterou Devolução da empresa #${cod} (${empresas[index].empresa}) para "${valor}"`);
-        renderizarTabela();
-    }
-
-    function renderizarTabela() {
-        const corpo = document.getElementById('tabelaCorpo');
-        const termoBusca = document.getElementById('searchFilter').value.toLowerCase();
-        const devolucaoFiltro = document.getElementById('devolucaoFilter') ? document.getElementById('devolucaoFilter').value : '';
-        const enqFiltro = document.getElementById('enquadramentoFilter').value;
-        const statusFiltro = document.getElementById('statusFilter').value;
-        const opcaoFiltro = document.getElementById('opcao2027Filter').value;
-
-        const filtrados = empresas.filter(emp => {
-            const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
-            const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
-            const matchEnq = !enqFiltro || emp.enquadramento === enqFiltro;
-            const matchStatus = !statusFiltro || (statusFiltro === 'concluido' ? emp.levantamento : !emp.levantamento);
-            const matchOpcao = !opcaoFiltro || (opcaoFiltro === 'Pendente' ? !emp.opcao2027 : emp.opcao2027 === opcaoFiltro);
-            const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
-            const matchModelo = !modeloFiltro || (modeloFiltro === 'Pendente' ? !emp.modeloNegocio : emp.modeloNegocio === modeloFiltro);
-
-            return matchBusca && matchDevolucao && matchEnq && matchStatus && matchOpcao && matchModelo;
-        });
-
-        document.getElementById('registrosCount').innerText = `Mostrando ${filtrados.length} de ${empresas.length} empresas`;
-
-        corpo.innerHTML = '';
-
-        if (filtrados.length === 0) {
-            corpo.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">Nenhuma empresa encontrada com os filtros selecionados.</td></tr>`;
-            return;
-        }
-
-        filtrados.forEach(emp => {
-            const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
-            const tr = document.createElement('tr');
-
-            // Classe para estilo da opção selecionada
-            let classeOpcao = '';
-            if (emp.opcao2027 === 'Híbrida') classeOpcao = 'hibrida';
-            else if (emp.opcao2027 === 'Tradicional') classeOpcao = 'tradicional';
-            else if (emp.opcao2027 === 'Lucro Presumido') classeOpcao = 'presumido';
-            else if (emp.opcao2027 === 'Lucro Real') classeOpcao = 'real';
-
-            tr.innerHTML = `
-                <td><strong>#${emp.cod}</strong></td>
-                <td><strong style="color: var(--text-main); font-size: 13px;">${emp.empresa}</strong></td>
-                <td>
-                    <select class="select-opcao ${emp.modeloNegocio === 'B2B' ? 'b2b' : (emp.modeloNegocio === 'B2C' ? 'b2c' : (emp.modeloNegocio === 'B2B / B2C' ? 'b2b2c' : ''))}" onchange="alterarModeloNegocio(${indexOriginal}, this.value)" style="min-width: 135px;">
-                        <option value="" ${!emp.modeloNegocio ? 'selected' : ''}>-- Selecionar --</option>
-                        <option value="B2B" ${emp.modeloNegocio === 'B2B' ? 'selected' : ''}>B2B</option>
-                        <option value="B2C" ${emp.modeloNegocio === 'B2C' ? 'selected' : ''}>B2C</option>
-                        <option value="B2B / B2C" ${emp.modeloNegocio === 'B2B / B2C' ? 'selected' : ''}>B2B / B2C (Ambos)</option>
-                    </select>
-                </td>
-                <td><span class="badge badge-${emp.enquadramento.toLowerCase()}">${emp.enquadramento === 'SN' ? 'Simples Nacional' : emp.enquadramento}</span></td>
-                <td style="text-align: center;">
-                    <div class="check-status ${emp.levantamento ? 'done' : 'pending'}" onclick="toggleLevantamento(${indexOriginal})" title="Clique para alterar status">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
-                </td>
-                <td>
-                    <select class="select-opcao ${classeOpcao}" onchange="alterarOpcao2027(${indexOriginal}, this.value)">
-                        <option value="" ${!emp.opcao2027 ? 'selected' : ''}>-- Selecionar Opção --</option>
-                        <option value="Híbrida" ${emp.opcao2027 === 'Híbrida' ? 'selected' : ''}>Híbrida</option>
-                        <option value="Tradicional" ${emp.opcao2027 === 'Tradicional' ? 'selected' : ''}>Tradicional</option>
-                        <option value="Lucro Presumido" ${emp.opcao2027 === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
-                        <option value="Lucro Real" ${emp.opcao2027 === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
-                    </select>
-                </td>
-                <td>
-                    <select class="select-opcao" style="${getDevolucaoBadgeStyle(emp.devolucao)}" onchange="alterarDevolucao(${indexOriginal}, this.value)">
-                        <option value="Sem análise" ${(!emp.devolucao || emp.devolucao === 'Sem análise') ? 'selected' : ''}>Sem análise</option>
-                        <option value="Análise pendente" ${emp.devolucao === 'Análise pendente' ? 'selected' : ''}>Análise pendente</option>
-                        <option value="Análise solicitada" ${emp.devolucao === 'Análise solicitada' ? 'selected' : ''}>Análise solicitada</option>
-                        <option value="Análise finalizada" ${emp.devolucao === 'Análise finalizada' ? 'selected' : ''}>Análise finalizada</option>
-                        <option value="Não se aplica" ${emp.devolucao === 'Não se aplica' ? 'selected' : ''}>Não se aplica</option>
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Inserir observação..." onchange="alterarObs(${indexOriginal}, this.value)">
-                </td>
-                <td style="text-align: center;">
-                    <button class="btn-icon" onclick="excluirEmpresa(${indexOriginal})" title="Excluir Empresa"><i class="fa-solid fa-trash-can"></i></button>
-                </td>
-            `;
-            corpo.appendChild(tr);
-        });
-    }
-
-    function toggleLevantamento(index) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].levantamento = !empresas[index].levantamento;
-        const emp = empresas[index];
-        const statusText = emp.levantamento ? "marcou como CONCLUÍDO (✔️)" : "marcou como PENDENTE";
-        salvarDados(`[${'Fiscal'}] ${statusText} a empresa #${emp.cod} (${emp.empresa})`);
-        renderizarTabela();
-    }
-
-    function alterarOpcao2027(index, valor) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].opcao2027 = valor;
-        if (valor && !empresas[index].levantamento) {
-            empresas[index].levantamento = true;
-        }
-        const emp = empresas[index];
-        salvarDados(`[${'Fiscal'}] alterou Opção 2027 para "${valor || 'Pendente'}" na empresa #${emp.cod} (${emp.empresa})`);
-        renderizarTabela();
-    }
-
-    
-    function alterarNomeEmpresa(index, valor) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].empresa = valor;
-        salvarDados();
-    }
-function alterarObs(index, valor) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].obs = valor;
-        salvarDados();
-    }
-
-    function alterarColaborador(index, valor) {
-        if (!validarSenhaEdicao()) return;
-        empresas[index].colaborador = valor;
-        salvarDados();
-        // popularFiltroColaboradores();
-    }
-
-    function excluirEmpresa(index) {
-        if (!validarSenhaEdicao()) return;
-        if (confirm(`Tem certeza que deseja excluir a empresa #${empresas[index].cod}?`)) {
-            empresas.splice(index, 1);
-            salvarDados();
-            renderizarTabela();
-        }
-    }
-
-    function filtrarTabela() {
-        renderizarTabela();
-    }
-
-    function atualizarKPIs() {
-        const total = empresas.length;
-        const levantados = empresas.filter(e => e.levantamento).length;
-        const hibridas = empresas.filter(e => e.opcao2027 === 'Híbrida').length;
-        const presumidoReal = empresas.filter(e => e.opcao2027 === 'Lucro Presumido' || e.opcao2027 === 'Lucro Real').length;
-
-        document.getElementById('kpiTotal').innerText = total;
-        document.getElementById('kpiLevantados').innerText = `${levantados} (${total ? Math.round((levantados/total)*100) : 0}%)`;
-        document.getElementById('kpiHibrida').innerText = hibridas;
-        document.getElementById('kpiPresumidoReal').innerText = presumidoReal;
-    }
-
-    // Modal Nova Empresa
     function abrirModalNovaEmpresa() {
         if (!validarSenhaEdicao()) return;
         document.getElementById('modalEmpresa').classList.add('active');
