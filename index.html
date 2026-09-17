@@ -497,15 +497,16 @@
         <span id="toastMsg">Alterações salvas e transmitidas em tempo real!</span>
     </div>
 
-    <!-- LOGIN MODAL (Appears on start if not logged in) -->
+    <!-- LOGIN MODAL (Aparece apenas se o usuário for realizar alguma edição) -->
     <div id="loginModal" class="modal-overlay" style="display: none;">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>🔐 Identificação do Usuário</h2>
+                <h2>🔐 Autorização para Alteração</h2>
+                <button class="btn btn-outline" style="padding: 4px 10px;" onclick="fecharLoginModal()">✕ Cancelar</button>
             </div>
             <div class="modal-body">
                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
-                    Informe seu nome de usuário e a senha de autorização para acessar o sistema.
+                    Para alterar informações, digite seu nome e a senha de autorização.
                 </p>
                 <div class="form-field">
                     <label>Seu Nome / Usuário</label>
@@ -517,7 +518,7 @@
                 </div>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                <button class="btn btn-primary" onclick="efetuarLogin()">Entrar no Sistema</button>
+                <button class="btn btn-primary" onclick="efetuarLogin()">Autorizar e Salvar</button>
             </div>
         </div>
     </div>
@@ -526,7 +527,7 @@
     <div id="historicoModal" class="modal-overlay" style="display: none;">
         <div class="modal-card modal-card-lg">
             <div class="modal-header">
-                <h2>📜 Histórico de Alterações</h2>
+                <h2>📜 Histórico de Alterações (Tempo Real)</h2>
                 <button class="btn btn-outline" style="padding: 4px 10px;" onclick="fecharHistorico()">✕ Fechar</button>
             </div>
             <div class="modal-body" style="flex: 1;">
@@ -566,6 +567,7 @@
                     <span>👤 <strong id="userBadgeNome">--</strong></span>
                     <button style="background: none; border: none; color: #ef4444; cursor: pointer; font-weight: 700; margin-left: 6px;" onclick="fazerLogout()" title="Sair do sistema">🚪 Sair</button>
                 </div>
+                <button class="btn btn-outline" id="btnLoginHeader" onclick="exibirLoginModal()">🔐 Entrar / Identificar</button>
                 <button class="btn btn-outline" onclick="toggleTheme()">🌓 Tema</button>
                 <button class="btn btn-outline" onclick="abrirHistorico()">📜 Histórico</button>
                 <button class="btn btn-primary" onclick="adicionarEmpresa()">+ Nova Empresa</button>
@@ -678,12 +680,12 @@
     <!-- JAVASCRIPT LOGIC WITH REALTIME SUPABASE CLOUD DATABASE -->
     <script>
         const SENHA_MESTRE = "Fiscal2026";
-        const LOCAL_STORAGE_KEY = "rbm_opcao_tributaria_2027_LIVE_V3";
-        const HISTORICO_KEY = "rbm_historico_alteracoes_2027_LIVE_V3";
+        const LOCAL_STORAGE_KEY = "rbm_opcao_tributaria_2027_LIVE_V4";
+        const HISTORICO_KEY = "rbm_historico_alteracoes_2027_LIVE_V4";
 
         // SUPABASE REALTIME CLOUD DB ENDPOINTS (VIVIAN'S SYSTEM)
         const SUPABASE_REST_URL = "https://kbnhbdurbaseadwmrflk.supabase.co/rest/v1/kickoffs";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtibmhiZHVyYmFzZWFkd21yZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMDU5MzIsImV4cCI6MjA5OTU4MTkzMn0.0tGgLHFuJc1S6aLyw3E7GgaKIkEQVsCep6S2aSLF2Xk";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3OiOiJzdXBhYmFzZSIsInJlZiI6ImtibmhiZHVyYmFzZWFkd21yZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMDU5MzIsImV4cCI6MjA5OTU4MTkzMn0.0tGgLHFuJc1S6aLyw3E7GgaKIkEQVsCep6S2aSLF2Xk";
 
         const dadosIniciais = [
         {
@@ -2195,6 +2197,7 @@
         let historicoLog = [];
         let usuarioAtual = "";
         let isEditing = false;
+        let acaoPendente = null;
 
         function exibirToast(msg) {
             const toast = document.getElementById("toastNotify");
@@ -2205,6 +2208,17 @@
             }, 3500);
         }
 
+        // NORMALIZAÇÃO DETERMINÍSTICA DE COMPARAÇÃO DE DADOS (EVITA FALHAS DE KEY ORDERING DO JSON)
+        function normalizarEmpresas(list) {
+            if (!Array.isArray(list)) return "";
+            return list.map(e => `${e.cod}:${e.empresa}:${e.enquadramento}:${e.modelo || ''}:${e.devolucao || ''}:${e.opcao2027 || ''}:${e.obs || ''}`).join("|");
+        }
+
+        function normalizarHistorico(list) {
+            if (!Array.isArray(list)) return "";
+            return list.map(h => `${h.timestamp}:${h.usuario}:${h.cod}:${h.acao}:${h.detalhe}`).join("|");
+        }
+
         // CONTROLE DE SESSÃO / LOGIN
         function checarSessao() {
             const userSalvo = sessionStorage.getItem("rbm_usuario_logado");
@@ -2212,10 +2226,21 @@
                 usuarioAtual = userSalvo;
                 document.getElementById("userBadgeNome").textContent = usuarioAtual;
                 document.getElementById("userBadge").style.display = "flex";
-                document.getElementById("loginModal").style.display = "none";
+                document.getElementById("btnLoginHeader").style.display = "none";
             } else {
-                document.getElementById("loginModal").style.display = "flex";
+                document.getElementById("userBadge").style.display = "none";
+                document.getElementById("btnLoginHeader").style.display = "inline-flex";
             }
+        }
+
+        function exibirLoginModal(callback) {
+            if (callback) acaoPendente = callback;
+            document.getElementById("loginModal").style.display = "flex";
+        }
+
+        function fecharLoginModal() {
+            document.getElementById("loginModal").style.display = "none";
+            acaoPendente = null;
         }
 
         function efetuarLogin() {
@@ -2236,18 +2261,27 @@
             sessionStorage.setItem("rbm_usuario_logado", usuarioAtual);
             document.getElementById("userBadgeNome").textContent = usuarioAtual;
             document.getElementById("userBadge").style.display = "flex";
+            document.getElementById("btnLoginHeader").style.display = "none";
             document.getElementById("loginModal").style.display = "none";
+
+            if (acaoPendente) {
+                const fn = acaoPendente;
+                acaoPendente = null;
+                fn();
+            }
         }
 
         function fazerLogout() {
             sessionStorage.removeItem("rbm_usuario_logado");
             usuarioAtual = "";
+            document.getElementById("userBadge").style.display = "none";
+            document.getElementById("btnLoginHeader").style.display = "inline-flex";
             location.reload();
         }
 
-        function verificarAutenticado() {
+        function verificarAutenticado(callbackSeAutenticar) {
             if (!usuarioAtual) {
-                checarSessao();
+                exibirLoginModal(callbackSeAutenticar);
                 return false;
             }
             return true;
@@ -2347,16 +2381,16 @@
         }
 
         function salvarManualmente() {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => salvarManualmente())) return;
 
             salvarDados();
             registrarHistorico(0, "Múltiplas Empresas", "Salvamento Manual", "Sincronização forçada enviada para todos os computadores");
             exibirToast("✅ Alterações salvas com sucesso! Transmitido em tempo real para todos os computadores.");
         }
 
-        // SINCRONIZAÇÃO EM TEMPO REAL SUPABASE (POLLING DE 1 SEGUNDO COM CACHE-BUSTING)
+        // SINCRONIZAÇÃO EM TEMPO REAL SUPABASE (POLLING DE 1 SEGUNDO COM COMPARADOR DETERMINÍSTICO)
         function sincronizarComNuvemSupabase() {
-            if (isEditing) return; // Não substitui se o usuário estiver editando no momento
+            if (isEditing) return; // Não substitui se o usuário estiver digitando no momento
 
             const fetchUrl = SUPABASE_REST_URL + "?id=eq.opcao_tributaria_2027_live&_t=" + Date.now();
 
@@ -2371,10 +2405,10 @@
             .then(cloudRes => {
                 if (Array.isArray(cloudRes) && cloudRes.length > 0 && cloudRes[0].data) {
                     const cloudData = cloudRes[0].data;
-                    const jsonStrLocal = JSON.stringify(empresas);
-                    const jsonStrCloud = JSON.stringify(cloudData);
+                    const normLocal = normalizarEmpresas(empresas);
+                    const normCloud = normalizarEmpresas(cloudData);
 
-                    if (jsonStrLocal !== jsonStrCloud) {
+                    if (normLocal !== normCloud) {
                         empresas = cloudData;
                         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
                         renderizarTabela();
@@ -2396,9 +2430,9 @@
             .then(histRes => {
                 if (Array.isArray(histRes) && histRes.length > 0 && histRes[0].data) {
                     const cloudHist = histRes[0].data;
-                    const jsonHistLocal = JSON.stringify(historicoLog);
-                    const jsonHistCloud = JSON.stringify(cloudHist);
-                    if (jsonHistLocal !== jsonHistCloud) {
+                    const normHistLocal = normalizarHistorico(historicoLog);
+                    const normHistCloud = normalizarHistorico(cloudHist);
+                    if (normHistLocal !== normHistCloud) {
                         historicoLog = cloudHist;
                         localStorage.setItem(HISTORICO_KEY, JSON.stringify(historicoLog));
                     }
@@ -2488,7 +2522,10 @@
         }
 
         function alterarModelo(cod, val, el) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => alterarModelo(cod, val, el))) {
+                renderizarTabela();
+                return;
+            }
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
             const valAntigo = emp.modelo;
@@ -2499,7 +2536,10 @@
         }
 
         function alterarDevolucao(cod, val, el) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => alterarDevolucao(cod, val, el))) {
+                renderizarTabela();
+                return;
+            }
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
             const valAntigo = emp.devolucao;
@@ -2510,7 +2550,10 @@
         }
 
         function alterarOpcao2027(cod, val, el) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => alterarOpcao2027(cod, val, el))) {
+                renderizarTabela();
+                return;
+            }
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
             const valAntigo = emp.opcao2027;
@@ -2521,7 +2564,10 @@
         }
 
         function alterarObs(cod, val, el) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => alterarObs(cod, val, el))) {
+                renderizarTabela();
+                return;
+            }
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
             if (emp.obs === val) return;
@@ -2533,7 +2579,7 @@
         }
 
         function adicionarEmpresa() {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => adicionarEmpresa())) return;
 
             const codStr = prompt("Digite o código da nova empresa:");
             if (!codStr) return;
@@ -2568,7 +2614,7 @@
         }
 
         function excluirEmpresa(cod) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => excluirEmpresa(cod))) return;
             const emp = empresas.find(e => e.cod === cod);
             if (!emp) return;
 
@@ -2626,7 +2672,7 @@
         }
 
         function importarExcel(event) {
-            if (!verificarAutenticado()) return;
+            if (!verificarAutenticado(() => importarExcel(event))) return;
 
             const file = event.target.files[0];
             if (!file) return;
