@@ -2310,6 +2310,47 @@
             }).catch(err => console.error("Erro histórico Firebase:", err));
         }
 
+        function salvarDados() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(empresas));
+            } catch(e){}
+
+            fetch(FIREBASE_LIVE_URL, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(empresas)
+            }).catch(err => console.error("Erro salvar Firebase:", err));
+        }
+
+        function carregarDados() {
+            const salvos = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const histSalvo = localStorage.getItem(HISTORICO_KEY);
+
+            if (histSalvo) {
+                try { historicoLog = JSON.parse(histSalvo); } catch(e){}
+            }
+
+            if (salvos) {
+                try {
+                    const listSalva = JSON.parse(salvos);
+                    if (Array.isArray(listSalva) && listSalva.length > 0) {
+                        empresas = listSalva;
+                    } else {
+                        empresas = JSON.parse(JSON.stringify(dadosIniciais));
+                    }
+                } catch(e) {
+                    empresas = JSON.parse(JSON.stringify(dadosIniciais));
+                }
+            } else {
+                empresas = JSON.parse(JSON.stringify(dadosIniciais));
+            }
+
+            checarSessao();
+            renderizarTabela();
+            atualizarKPIs();
+            sincronizarComNuvemSupabase();
+        }
+
         function salvarManualmente() {
             if (!verificarAutenticado(() => salvarManualmente())) return;
 
@@ -2383,13 +2424,14 @@
             });
 
             filtrados.forEach(emp => {
-                const isPendente = emp.devolucao === "Análise pendente";
-                const isConcluida = emp.devolucao === "Análise finalizada" && (emp.opcao2027 && emp.opcao2027 !== "");
+                const devVal = emp.devolucao || "Sem análise";
+                const isFinalizada = devVal === "Análise finalizada" || devVal === "Finalizada";
+                const isEmAnalise = devVal === "Análise pendente" || devVal === "Em análise" || devVal === "Em analise";
 
                 const tr = document.createElement("tr");
-                if (isConcluida) {
+                if (isFinalizada) {
                     tr.className = "row-concluida";
-                } else if (isPendente) {
+                } else if (isEmAnalise) {
                     tr.className = "row-pendente";
                 }
 
@@ -2465,6 +2507,8 @@
             salvarDados();
             registrarHistorico(emp.cod, emp.empresa, "Devolução Alterada", `De "${valAntigo}" para "${val}"`);
             exibirToast(`Empresa [${emp.cod}] ${emp.empresa} salva e transmitida!`);
+            renderizarTabela();
+            atualizarKPIs();
         }
 
         function alterarOpcao2027(cod, val, el) {
