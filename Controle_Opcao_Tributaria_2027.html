@@ -560,6 +560,32 @@
             background: rgba(16, 185, 129, 0.25) !important;
         }
 
+
+        .select-opcao.simples-puro {
+            background: rgba(2, 132, 199, 0.18) !important;
+            color: #38bdf8 !important;
+            border-color: rgba(2, 132, 199, 0.3) !important;
+            font-weight: 600;
+        }
+        .select-opcao.simples-hibrido {
+            background: rgba(245, 158, 11, 0.18) !important;
+            color: #f59e0b !important;
+            border-color: rgba(245, 158, 11, 0.3) !important;
+            font-weight: 600;
+        }
+        .select-opcao.lucro-presumido {
+            background: rgba(139, 92, 246, 0.18) !important;
+            color: #a78bfa !important;
+            border-color: rgba(139, 92, 246, 0.3) !important;
+            font-weight: 600;
+        }
+        .select-opcao.lucro-real {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #f87171 !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+            font-weight: 600;
+        }
+
 </style>
 </head>
 <body>
@@ -631,7 +657,7 @@
             </div>
             <div class="kpi-info">
                 <h3 id="kpiHibrida">0</h3>
-                <p>Opção Híbrida 2027</p>
+                <p>Simples Híbrido 2027</p>
             </div>
         </div>
 
@@ -694,13 +720,13 @@
             <div class="filter-item">
                 <label><i class="fa-solid fa-sliders"></i> Opção 2027</label>
                 <select id="opcao2027Filter" class="form-control" onchange="filtrarTabela()">
-                    <option value="">Todas as Opções</option>
-                    <option value="Híbrida">Híbrida</option>
-                    <option value="Tradicional">Tradicional</option>
-                    <option value="Lucro Presumido">Lucro Presumido</option>
-                    <option value="Lucro Real">Lucro Real</option>
-                    <option value="Pendente">Não Definida</option>
-                </select>
+                                <option value="">Todas as Opções</option>
+                                <option value="Simples puro">Simples puro</option>
+                                <option value="Simples híbrido">Simples híbrido</option>
+                                <option value="Lucro presumido">Lucro presumido</option>
+                                <option value="Lucro real">Lucro real</option>
+                                <option value="Pendente">Opção Pendente</option>
+                            </select>
             </div>
         </div>
     </div>
@@ -2531,6 +2557,7 @@ function renderizarTabela() {
         const modeloFiltro = document.getElementById('modeloFilter') ? document.getElementById('modeloFilter').value : '';
 
         const filtrados = empresas.filter(emp => {
+            // Linha fica verde quando Modelo, Enquadramento, Devolução e Opção 2027 estão preenchidos (Observação é opcional)
             const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
             const matchBusca = emp.empresa.toLowerCase().includes(termoBusca) || emp.cod.toString().includes(termoBusca);
             const matchDevolucao = !devolucaoFiltro || (emp.devolucao || 'Sem análise') === devolucaoFiltro;
@@ -2555,16 +2582,17 @@ function renderizarTabela() {
             const indexOriginal = empresas.findIndex(e => e.cod === emp.cod);
             const tr = document.createElement('tr');
 
+            // Regra da Linha Verde: Modelo, Enquadramento, Devolução e Opção 2027 preenchidos
             const isConcluido = !!(emp.modeloNegocio && emp.enquadramento && emp.devolucao && emp.devolucao !== 'Sem análise' && emp.opcao2027);
             if (isConcluido) {
                 tr.classList.add('row-concluida');
             }
 
             let classeOpcao = '';
-            if (emp.opcao2027 === 'Híbrida') classeOpcao = 'hibrida';
-            else if (emp.opcao2027 === 'Tradicional') classeOpcao = 'tradicional';
-            else if (emp.opcao2027 === 'Lucro Presumido') classeOpcao = 'presumido';
-            else if (emp.opcao2027 === 'Lucro Real') classeOpcao = 'real';
+            if (emp.opcao2027 === 'Simples puro') classeOpcao = 'simples-puro';
+            else if (emp.opcao2027 === 'Simples híbrido') classeOpcao = 'simples-hibrido';
+            else if (emp.opcao2027 === 'Lucro presumido') classeOpcao = 'lucro-presumido';
+            else if (emp.opcao2027 === 'Lucro real') classeOpcao = 'lucro-real';
 
             const devolucaoActual = emp.devolucao || 'Sem análise';
 
@@ -2592,17 +2620,19 @@ function renderizarTabela() {
                 <td>
                     <select class="select-opcao ${classeOpcao}" onchange="alterarOpcao2027(${indexOriginal}, this.value)">
                         <option value="" ${!emp.opcao2027 ? 'selected' : ''}>-- Selecionar Opção --</option>
-                        <option value="Híbrida" ${emp.opcao2027 === 'Híbrida' ? 'selected' : ''}>Híbrida</option>
-                        <option value="Tradicional" ${emp.opcao2027 === 'Tradicional' ? 'selected' : ''}>Tradicional</option>
-                        <option value="Lucro Presumido" ${emp.opcao2027 === 'Lucro Presumido' ? 'selected' : ''}>Lucro Presumido</option>
-                        <option value="Lucro Real" ${emp.opcao2027 === 'Lucro Real' ? 'selected' : ''}>Lucro Real</option>
+                        <option value="Simples puro" ${emp.opcao2027 === 'Simples puro' ? 'selected' : ''}>Simples puro</option>
+                        <option value="Simples híbrido" ${emp.opcao2027 === 'Simples híbrido' ? 'selected' : ''}>Simples híbrido</option>
+                        <option value="Lucro presumido" ${emp.opcao2027 === 'Lucro presumido' ? 'selected' : ''}>Lucro presumido</option>
+                        <option value="Lucro real" ${emp.opcao2027 === 'Lucro real' ? 'selected' : ''}>Lucro real</option>
                     </select>
                 </td>
                 <td>
                     <input type="text" class="obs-input" value="${emp.obs || ''}" placeholder="Observação..." onchange="alterarObs(${indexOriginal}, this.value)">
                 </td>
                 <td style="text-align: center;">
-                    <button class="action-btn delete" onclick="excluirEmpresa(${indexOriginal})" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                    <button class="action-btn delete" onclick="excluirEmpresa(${indexOriginal})" title="Excluir Empresa" style="padding: 4px 10px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; cursor: pointer;">
+                        <i class="fa-solid fa-xmark"></i> Excluir
+                    </button>
                 </td>
             `;
             corpo.appendChild(tr);
