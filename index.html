@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS para Excel import/export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
-    // EXECUÇÃO IMEDIATA E SÍNCRONA AO CARREGAR O SCRIPT
+    // EXECUÇÃO IMEDIATA E SÍNCRONA DAS 167 EMPRESAS
     try {
         carregarDados();
     } catch(e) {
@@ -2341,7 +2341,14 @@
 ];
 
     
+    
+    // CONFIGURAÇÃO OFICIAL FIREBASE CLOUD REALTIME DATABASE FOR RBM
+    const firebaseConfig = {
+        databaseURL: "https://rbm-opcao-tributaria-2027-default-rtdb.firebaseio.com"
+    };
+
     let empresas = JSON.parse(JSON.stringify(dadosIniciais));
+
     let editUnlocked = false;
     let cloudDb = null;
     let historicoAlteracoes = [];
